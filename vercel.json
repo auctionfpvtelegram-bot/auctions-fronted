@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+      {
+        "source": "/api/(.*)",
+        "destination": "amvera-auctionfpv-run-drone-auction-bot"
+      }
+    ]
+  }
