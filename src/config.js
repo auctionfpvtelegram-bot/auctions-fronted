@@ -1,1 +1,1 @@
-export const API_URL = 'https://drone-auction-bot-auctionfpv.waw0.amvera.tech';
+export const API_URL = 'https://fpv-auction-test-auctionfpv.waw0.amvera.tech';
