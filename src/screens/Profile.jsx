@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { API_URL } from '../config'; // ⚡ 1. ИСПРАВЛЕН ИМПОРТ
+import { API_URL } from '../config'; 
 
-// ⚡ 2. ДОБАВЛЕНА ЗАЩИТА (ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ)
 function Profile({ 
   setCurrentScreen = () => {}, 
   currentUser = {}, 
@@ -22,23 +21,14 @@ function Profile({
 
     setIsLoading(true);
     fetch(`${API_URL}/api/users/${currentUser.id}/profile?t=${Date.now()}`)
-      .then(async res => {
-        if (!res.ok) throw new Error('Ошибка ответа от сервера');
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
         setMyLots(Array.isArray(data.myLots) ? data.myLots : []);
         setMyBids(Array.isArray(data.myBids) ? data.myBids : []);
         setDealsCount(data.dealsCount !== undefined ? data.dealsCount : (currentUser?.dealsCount || 0));
       })
-      .catch(err => {
-        console.error("Ошибка загрузки профиля:", err);
-        setMyLots([]);
-        setMyBids([]);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      .catch(() => { setMyLots([]); setMyBids([]); })
+      .finally(() => setIsLoading(false));
   }, [currentUser.id, currentUser.dealsCount]);
 
   const getStatusBadge = (status) => {
@@ -70,42 +60,30 @@ function Profile({
       {isBanActive && (
         <div style={{ background: '#ffebee', padding: '16px', margin: '0 16px 16px 16px', borderRadius: '12px', border: '1px solid #ef9a9a' }}>
           <h3 style={{ color: '#c62828', marginTop: 0, marginBottom: '8px', fontSize: '16px' }}>🚫 Ограничение аккаунта</h3>
-          <p style={{ margin: '4px 0', fontSize: '14px', color: '#111' }}>
-            <strong>Причина:</strong> {currentUser.banReason || 'Нарушение правил'}
-          </p>
-          <p style={{ margin: '4px 0', fontSize: '14px', color: '#111' }}>
-            <strong>Что запрещено:</strong> {
-              currentUser.banScope === 'BIDS' ? 'Делать ставки' : 
-              currentUser.banScope === 'LOTS' ? 'Создавать лоты' : 
-              'Создавать лоты и делать ставки'
-            }
-          </p>
-          <p style={{ margin: '4px 0', fontSize: '14px', color: '#111' }}>
-            <strong>Снятие ограничений:</strong> {new Date(currentUser.banUntil).toLocaleDateString('ru-RU')}
-          </p>
+          <p style={{ margin: '4px 0', fontSize: '14px', color: '#111' }}><strong>Причина:</strong> {currentUser.banReason || 'Нарушение правил'}</p>
+          <p style={{ margin: '4px 0', fontSize: '14px', color: '#111' }}><strong>Что запрещено:</strong> {currentUser.banScope === 'BIDS' ? 'Делать ставки' : currentUser.banScope === 'LOTS' ? 'Создавать лоты' : 'Создавать лоты и делать ставки'}</p>
+          <p style={{ margin: '4px 0', fontSize: '14px', color: '#111' }}><strong>Снятие ограничений:</strong> {new Date(currentUser.banUntil).toLocaleDateString('ru-RU')}</p>
         </div>
       )}
       
       <div className="profile-user-card" style={{ cursor: 'pointer' }} onClick={() => handleOpenPublicProfile(currentUser.id, 'profile')}>
         <div className="profile-info">
           <h3 className="profile-name">{currentUser.firstName || 'Гость'} (ID: {currentUser.id || '...'})</h3>
-          
           <div className="profile-rating" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginTop: '6px' }}>
             <span>⭐️ {currentUser.rating > 0 ? currentUser.rating.toFixed(1) : '0.0'} рейтинг</span>
             <span style={{ color: '#ccc' }}>•</span>
             <span style={{ color: '#2e7d32', fontWeight: '500' }}>🤝 Успешных сделок: <b>{dealsCount}</b></span>
           </div>
-
         </div>
       </div>
 
-      <div className="profile-actions">
-        <button className="action-btn" onClick={() => setCurrentScreen('feedback')}>💬 Обратная связь</button>
-        <button className="action-btn" onClick={() => setCurrentScreen('settings')}>⚙️ Настройки</button>
+      {/* ⚡ Обновленный блок кнопок с Историей тикетов */}
+      <div className="profile-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '0 16px', marginBottom: '16px' }}>
+        <button className="action-btn" style={{ margin: 0 }} onClick={() => setCurrentScreen('feedback')}>💬 Поддержка</button>
+        <button className="action-btn" style={{ margin: 0, background: '#e3f2fd', color: '#1976d2', borderColor: '#bbdefb' }} onClick={() => setCurrentScreen('ticketHistory')}>🎧 Мои обращения</button>
+        <button className="action-btn" style={{ margin: 0 }} onClick={() => setCurrentScreen('settings')}>⚙️ Настройки</button>
         {isAdmin && (
-          <button className="action-btn" style={{ borderColor: '#fbc02d', color: '#fbc02d' }} onClick={() => setCurrentScreen('adminDashboard')}>
-            👑 Админка
-          </button>
+          <button className="action-btn" style={{ margin: 0, borderColor: '#fbc02d', color: '#fbc02d' }} onClick={() => setCurrentScreen('adminDashboard')}>👑 Админка</button>
         )}
       </div>
 
@@ -121,22 +99,20 @@ function Profile({
         ) : (
           <>
             {activeProfileTab === 'lots' && (
-              <>
-                {myLots.length === 0 ? (<p style={{ textAlign: 'center', color: '#888', marginTop: '20px' }}>У вас пока нет лотов</p>) : (
-                  myLots.map((lot) => (
-                    <div key={lot.id} className="profile-list-item" onClick={() => openLotDetails(lot)} style={{ cursor: 'pointer' }}>
-                      <div className="item-info">
-                        <div className="item-details">
-                          <span className="card-lot-id">Лот #{lot.id}</span>
-                          <p className="item-title">{lot.title}</p>
-                          <p className="item-subtext">Текущая цена: <span className="item-subtext-bold">{lot.currentPrice?.toLocaleString('ru-RU')} ₽</span></p>
-                        </div>
+              myLots.length === 0 ? (<p style={{ textAlign: 'center', color: '#888', marginTop: '20px' }}>У вас пока нет лотов</p>) : (
+                myLots.map((lot) => (
+                  <div key={lot.id} className="profile-list-item" onClick={() => openLotDetails(lot)} style={{ cursor: 'pointer' }}>
+                    <div className="item-info">
+                      <div className="item-details">
+                        <span className="card-lot-id">Лот #{lot.id}</span>
+                        <p className="item-title">{lot.title}</p>
+                        <p className="item-subtext">Текущая цена: <span className="item-subtext-bold">{lot.currentPrice?.toLocaleString('ru-RU')} ₽</span></p>
                       </div>
-                      <div className="item-status-price">{getStatusBadge(lot.status)}</div>
                     </div>
-                  ))
-                )}
-              </>
+                    <div className="item-status-price">{getStatusBadge(lot.status)}</div>
+                  </div>
+                ))
+              )
             )}
 
             {activeProfileTab === 'bids' && (
@@ -177,25 +153,23 @@ function Profile({
             )}
 
             {activeProfileTab === 'favorites' && (
-              <>
-                {favoriteLots.length === 0 ? (<p style={{ textAlign: 'center', color: '#888', marginTop: '20px' }}>У вас пока нет избранных лотов</p>) : (
-                  favoriteLots.map((lot) => (
-                    <div key={lot.id} className="profile-list-item" onClick={() => openLotDetails(lot)} style={{ cursor: 'pointer' }}>
-                      <div className="item-info">
-                        <div className="item-details">
-                          <span className="card-lot-id">Лот #{lot.id}</span>
-                          <p className="item-title">{lot.title}</p>
-                          <p className="item-subtext">Текущая цена: <span className="item-subtext-bold">{lot.currentPrice?.toLocaleString('ru-RU')} ₽</span></p>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <div className="item-status-price">{getStatusBadge(lot.status)}</div>
-                        <button style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); toggleFavorite(lot); }}>❤️</button>
+              favoriteLots.length === 0 ? (<p style={{ textAlign: 'center', color: '#888', marginTop: '20px' }}>У вас пока нет избранных лотов</p>) : (
+                favoriteLots.map((lot) => (
+                  <div key={lot.id} className="profile-list-item" onClick={() => openLotDetails(lot)} style={{ cursor: 'pointer' }}>
+                    <div className="item-info">
+                      <div className="item-details">
+                        <span className="card-lot-id">Лот #{lot.id}</span>
+                        <p className="item-title">{lot.title}</p>
+                        <p className="item-subtext">Текущая цена: <span className="item-subtext-bold">{lot.currentPrice?.toLocaleString('ru-RU')} ₽</span></p>
                       </div>
                     </div>
-                  ))
-                )}
-              </>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div className="item-status-price">{getStatusBadge(lot.status)}</div>
+                      <button style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); toggleFavorite(lot); }}>❤️</button>
+                    </div>
+                  </div>
+                ))
+              )
             )}
           </>
         )}

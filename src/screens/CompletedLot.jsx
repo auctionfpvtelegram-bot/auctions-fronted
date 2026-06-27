@@ -4,7 +4,9 @@ function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isFavorite, 
   const isWinner = selectedLot?.bids?.[0]?.userId === currentUser.id;
   const isSeller = selectedLot?.sellerId === currentUser.id;
   const canReview = isWinner || isSeller;
-  const hasReviewed = selectedLot?.reviews?.some(r => r.authorId === currentUser.id);
+  
+  // ⚡ Ищем конкретный отзыв текущего пользователя, чтобы показать его статус
+  const userReview = selectedLot?.reviews?.find(r => r.authorId === currentUser.id);
 
   return (
     <div className="app-container" style={{ paddingBottom: '32px' }}>
@@ -29,7 +31,10 @@ function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isFavorite, 
       <h1 className="lot-page-title">{selectedLot?.title}</h1>
       <p className="lot-page-location">📍 {selectedLot?.location}</p>
       
-      <div className="lot-section"><h3 className="lot-section-title">Описание</h3><p className="lot-description-text" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{selectedLot?.description}</p></div>
+      <div className="lot-section">
+        <h3 className="lot-section-title">Описание</h3>
+        <p className="lot-description-text" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{selectedLot?.description}</p>
+      </div>
       
       <div className="lot-section">
         <h3 className="lot-section-title">История всех ставок ({selectedLot?.bids?.length || 0})</h3>
@@ -51,14 +56,30 @@ function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isFavorite, 
         <p className="seller-username">Продавец ID: {selectedLot?.sellerId}</p>
       </div>
       
-      {canReview && !hasReviewed && (
+      {/* ⚡ Логика отображения кнопки отзыва или его статуса */}
+      {canReview && !userReview && (
         <button className="btn-review" onClick={() => setCurrentScreen('writeReview')}>
           ⭐ Оставить отзыв {isSeller ? 'покупателю' : 'продавцу'}
         </button>
       )}
-      {canReview && hasReviewed && (
-        <div style={{ textAlign: 'center', color: '#2e7d32', fontWeight: 'bold', marginTop: '16px', padding: '12px', background: '#e8f5e9', borderRadius: '12px' }}>
-          ✓ Вы уже оставили свой отзыв
+
+      {userReview && (
+        <div style={{ 
+          marginTop: '16px', padding: '12px', borderRadius: '12px', textAlign: 'center',
+          background: userReview.status === 'REJECTED' ? '#ffebee' : userReview.status === 'MODERATION' ? '#fff8e1' : '#e8f5e9' 
+        }}>
+          {userReview.status === 'ACTIVE' && <span style={{ color: '#2e7d32', fontWeight: 'bold' }}>✓ Ваш отзыв опубликован</span>}
+          {userReview.status === 'MODERATION' && <span style={{ color: '#f57f17', fontWeight: 'bold' }}>⏳ Отзыв проверяется модератором</span>}
+          {userReview.status === 'REJECTED' && (
+            <>
+              <span style={{ color: '#c62828', fontWeight: 'bold' }}>❌ Ваш отзыв отклонен</span>
+              {userReview.rejectReason && (
+                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#c62828' }}>
+                  Причина: {userReview.rejectReason}
+                </p>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

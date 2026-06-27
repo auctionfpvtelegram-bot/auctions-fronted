@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-// Импортируем API_URL из отдельного файла, чтобы не ломать App.jsx!
 import { API_URL } from '../config'; 
 
-// Добавлена защита по умолчанию (= [] и = () => {})
 function Home({ 
   setCurrentScreen = () => {}, 
   setSelectedLot = () => {}, 
@@ -13,20 +11,20 @@ function Home({
   const [apiLots, setApiLots] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('Все');
+  const [sortParam, setSortParam] = useState('new'); // ⚡ Новое состояние сортировки
   const [now, setNow] = useState(Date.now());
 
   const categories = ['Все', 'Беспилотник', 'Аккумуляторы', 'Пульты', 'Очки/Шлемы', 'Запчасти', 'Прочее'];
 
-  // Живой таймер
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Загрузка лотов при открытии витрины
+  // ⚡ Загрузка лотов теперь зависит от sortParam
   useEffect(() => {
     setIsLoading(true);
-    fetch(`${API_URL}/api/lots?t=${Date.now()}`)
+    fetch(`${API_URL}/api/lots?sort=${sortParam}&t=${Date.now()}`)
       .then(async res => {
         if (!res.ok) throw new Error('Ошибка сервера');
         return res.json();
@@ -41,7 +39,7 @@ function Home({
       .finally(() => {
         setIsLoading(false); 
       });
-  }, []);
+  }, [sortParam]); // Перезапрашиваем при смене сортировки
 
   const formatTimeLeft = (endTime) => {
     if (!endTime) return '';
@@ -84,9 +82,25 @@ function Home({
 
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 16px 8px 16px', fontSize: '12px', alignItems: 'center' }}>
         <span style={{ color: '#888' }}>{filteredLots.length} активных лотов</span>
+        
+        {/* ⚡ ВЫПАДАЮЩИЙ СПИСОК СОРТИРОВКИ */}
+        <select 
+          style={{ padding: '4px 8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '12px', outline: 'none', background: '#fff' }}
+          value={sortParam}
+          onChange={(e) => setSortParam(e.target.value)}
+        >
+          <option value="new">Сначала новые</option>
+          <option value="ending_soon">Скоро завершатся</option>
+          <option value="price_asc">Сначала дешевые</option>
+          <option value="price_desc">Сначала дорогие</option>
+          <option value="active">Активные торги (горячие)</option>
+        </select>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 16px 8px 16px', fontSize: '12px' }}>
         {isAdmin && (
           <span style={{ color: '#fbc02d', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setCurrentScreen('adminDashboard')}>
-            Модератор
+            Панель модератора
           </span>
         )}
       </div>
