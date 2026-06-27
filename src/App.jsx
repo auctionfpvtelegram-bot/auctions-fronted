@@ -16,7 +16,7 @@ import Settings from './screens/Settings';
 import WriteReview from './screens/WriteReview';
 // ⚡ Новые компоненты:
 import TicketHistory from './screens/TicketHistory';
-import NotificationsPanel from './components/NotificationsPanel';
+import NotificationsPanel from './screens/NotificationsPanel';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
