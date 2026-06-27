@@ -6,18 +6,16 @@ function TicketHistory({ setCurrentScreen, currentUser }) {
   const [newMessageText, setNewMessageText] = useState('');
   const messagesEndRef = useRef(null);
 
-  // ⚡ Загружаем тикеты и сразу открываем самый свежий (или создаем единый чат)
   useEffect(() => {
     fetch(`${API_URL}/api/users/${currentUser.id}/tickets`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          setActiveTicket(data[0]); // Берем последний тикет как единую историю
+          setActiveTicket(data[0]);
         }
       });
   }, [currentUser.id]);
 
-  // ⚡ Автоскролл вниз при загрузке новых сообщений
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeTicket?.messages]);
@@ -26,10 +24,9 @@ function TicketHistory({ setCurrentScreen, currentUser }) {
     if (!newMessageText.trim()) return;
     
     const textToSend = newMessageText;
-    setNewMessageText(''); // Очищаем поле ввода для отзывчивости
+    setNewMessageText(''); 
 
     if (!activeTicket) {
-      // Если это самое первое сообщение в истории профиля, создаем тикет "Чат с поддержкой"
       fetch(`${API_URL}/api/tickets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,13 +41,11 @@ function TicketHistory({ setCurrentScreen, currentUser }) {
         }).then(() => newTicket);
       })
       .then(() => {
-        // Обновляем чат
         fetch(`${API_URL}/api/users/${currentUser.id}/tickets`)
           .then(res => res.json())
           .then(data => setActiveTicket(data[0]));
       });
     } else {
-      // Если чат уже есть, просто кидаем туда сообщение
       fetch(`${API_URL}/api/tickets/${activeTicket.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,9 +59,10 @@ function TicketHistory({ setCurrentScreen, currentUser }) {
   };
 
   return (
-    <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column' }}>
+    // ⚡ Жестко фиксируем высоту контейнера, чтобы он не разъезжался
+    <div style={{ background: '#f5f5f5', height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
       
-      {/* ⚡ ОБЛАСТЬ СООБЩЕНИЙ */}
+      {/* ⚡ ОБЛАСТЬ СООБЩЕНИЙ (скроллится внутри) */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <p style={{ textAlign: 'center', color: '#888', fontSize: '13px', margin: '10px 0 20px 0' }}>
           Это чат со службой заботы. Опишите вашу проблему, и модератор ответит вам в ближайшее время.
@@ -96,8 +92,8 @@ function TicketHistory({ setCurrentScreen, currentUser }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ⚡ ПОЛЕ ВВОДА (ПРИЛИПАЕТ К НИЗУ) */}
-      <div style={{ position: 'sticky', bottom: 0, padding: '12px 16px', background: '#fff', borderTop: '1px solid #eee', display: 'flex', gap: '8px' }}>
+      {/* ⚡ ПОЛЕ ВВОДА (Намертво прижато к низу, не плавает) */}
+      <div style={{ padding: '12px 16px', background: '#fff', borderTop: '1px solid #eee', display: 'flex', gap: '8px', flexShrink: 0 }}>
         <input 
           type="text" 
           placeholder="Введите сообщение..." 

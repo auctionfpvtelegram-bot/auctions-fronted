@@ -58,9 +58,11 @@ function Home({
       {/* ⚡ ПАНЕЛЬ ИНФОРМАЦИИ И СОРТИРОВКИ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 16px 12px 16px', fontSize: '12px', alignItems: 'center' }}>
         
-        {/* Левая часть: кол-во лотов + сортировка */}
+        {/* Левая часть: кол-во лотов */}
+        <span style={{ color: '#888' }}>{filteredLots.length} активных лотов</span>
+        
+        {/* Правая часть: сортировка + админка */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ color: '#888' }}>{filteredLots.length} активных лотов</span>
           
           <select 
             value={sortParam}
@@ -77,20 +79,19 @@ function Home({
               fontSize: '12px',
             }}
           >
-            <option value="new">Сначала новые</option>
+            <option value="new">Сортировать</option>
             <option value="ending_soon">Скоро завершатся</option>
             <option value="price_asc">Сначала дешевые</option>
             <option value="price_desc">Сначала дорогие</option>
             <option value="active">Обсуждаемые</option>
           </select>
-        </div>
 
-        {/* Правая часть: кнопка админа */}
-        {isAdmin && (
-          <span style={{ color: '#fbc02d', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }} onClick={() => setCurrentScreen('adminDashboard')}>
-            👑 Админка
-          </span>
-        )}
+          {isAdmin && (
+            <span style={{ color: '#fbc02d', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }} onClick={() => setCurrentScreen('adminDashboard')}>
+              👑 Админка
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="lots-grid">
