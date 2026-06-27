@@ -55,40 +55,42 @@ function Home({
         ))}
       </div>
 
+      {/* ⚡ ПАНЕЛЬ ИНФОРМАЦИИ И СОРТИРОВКИ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 16px 12px 16px', fontSize: '12px', alignItems: 'center' }}>
-        <span style={{ color: '#888' }}>{filteredLots.length} активных лотов</span>
+        
+        {/* Левая часть: кол-во лотов + сортировка */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ color: '#888' }}>{filteredLots.length} активных лотов</span>
+          
+          <select 
+            value={sortParam}
+            onChange={(e) => setSortParam(e.target.value)}
+            style={{
+              padding: '4px 8px',
+              borderRadius: '8px',
+              border: '1px solid #fbc02d',
+              color: '#d89b00',
+              fontWeight: 'bold',
+              background: 'transparent',
+              outline: 'none',
+              cursor: 'pointer',
+              fontSize: '12px',
+            }}
+          >
+            <option value="new">Сначала новые</option>
+            <option value="ending_soon">Скоро завершатся</option>
+            <option value="price_asc">Сначала дешевые</option>
+            <option value="price_desc">Сначала дорогие</option>
+            <option value="active">Обсуждаемые</option>
+          </select>
+        </div>
+
+        {/* Правая часть: кнопка админа */}
         {isAdmin && (
           <span style={{ color: '#fbc02d', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }} onClick={() => setCurrentScreen('adminDashboard')}>
             👑 Админка
           </span>
         )}
-      </div>
-
-      {/* ⚡ ВЫПАДАЮЩИЙ СПИСОК В СТИЛЕ КНОПКИ МОДЕРАТОРА */}
-      <div style={{ padding: '0 16px', marginBottom: '16px' }}>
-        <select 
-          value={sortParam}
-          onChange={(e) => setSortParam(e.target.value)}
-          style={{
-            padding: '8px 12px',
-            borderRadius: '12px',
-            border: '1px solid #fbc02d',
-            color: '#fbc02d',
-            fontWeight: 'bold',
-            background: 'transparent',
-            outline: 'none',
-            cursor: 'pointer',
-            fontSize: '13px',
-            width: 'auto',
-            appearance: 'auto'
-          }}
-        >
-          <option value="new">🆕 Сначала новые</option>
-          <option value="ending_soon">⏳ Скоро завершатся</option>
-          <option value="price_asc">📉 Сначала дешевые</option>
-          <option value="price_desc">📈 Сначала дорогие</option>
-          <option value="active">🔥 Самые обсуждаемые</option>
-        </select>
       </div>
 
       <div className="lots-grid">
