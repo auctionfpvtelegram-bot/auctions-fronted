@@ -67,7 +67,7 @@ function AddLot({ setCurrentScreen, currentUser }) {
     <>
       <div className="screen-header">
         <button className="back-btn" onClick={() => setCurrentScreen('home')}>{'<'}</button>
-        <h2 className="screen-title">Добавить лот</h2>
+        <h2 className="screen-title"></h2>
       </div>
       
       <div style={{ background: '#e8f5e9', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', color: '#2e7d32', lineHeight: '1.4' }}>

@@ -110,7 +110,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
     <>
       <div className="screen-header" style={{ marginBottom: '16px' }}>
         <button className="back-btn" onClick={() => setCurrentScreen('home')}>{'<'}</button>
-        <h2 className="screen-title">Активный лот</h2>
+        <h2 className="screen-title"></h2>
         <div className="lot-header-icons" style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '20px' }}>
           <span onClick={() => toggleFavorite(localLot)} style={{cursor: 'pointer'}}>{isFavorite ? '❤️' : '♡'}</span>
         </div>

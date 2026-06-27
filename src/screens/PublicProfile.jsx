@@ -45,7 +45,7 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
       {/* Шапка */}
       <div style={{ background: '#fff', borderBottom: '1px solid #eee', padding: '16px', margin: '-16px -16px 16px -16px', display: 'flex', alignItems: 'center' }}>
         <button onClick={() => setCurrentScreen(publicProfileReferrer)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', paddingRight: '16px', color: '#111' }}>{'<'}</button>
-        <h2 style={{ margin: 0, fontSize: '18px', color: '#111' }}>Профиль пользователя</h2>
+        <h2 style={{ margin: 0, fontSize: '18px', color: '#111' }}></h2>
       </div>
 
       {/* Блок с Аватаром, ID и Рейтингом */}
