@@ -43,14 +43,6 @@ function Home({
 
   const filteredLots = activeCategory === 'Все' ? apiLots : apiLots.filter(lot => lot.category === activeCategory);
 
-  const sortOptions = [
-    { id: 'new', label: '🆕 Новые' },
-    { id: 'ending_soon', label: '⏳ Скоро завершатся' },
-    { id: 'price_asc', label: '📉 Дешевые' },
-    { id: 'price_desc', label: '📈 Дорогие' },
-    { id: 'active', label: '🔥 Горячие' }
-  ];
-
   return (
     <>
       <input type="text" placeholder="Поиск дронов..." className="search-bar" style={{ marginTop: '16px' }} />
@@ -63,32 +55,40 @@ function Home({
         ))}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 16px 8px 16px', fontSize: '12px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 16px 12px 16px', fontSize: '12px', alignItems: 'center' }}>
         <span style={{ color: '#888' }}>{filteredLots.length} активных лотов</span>
         {isAdmin && (
-          <span style={{ color: '#fbc02d', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setCurrentScreen('adminDashboard')}>
-            Панель модератора
+          <span style={{ color: '#fbc02d', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }} onClick={() => setCurrentScreen('adminDashboard')}>
+            👑 Админка
           </span>
         )}
       </div>
 
-      {/* ⚡ КРАСИВЫЕ КНОПКИ СОРТИРОВКИ */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '0 16px', marginBottom: '16px', paddingBottom: '4px' }}>
-        {sortOptions.map(btn => (
-          <button 
-            key={btn.id}
-            onClick={() => setSortParam(btn.id)}
-            style={{
-              flexShrink: 0, padding: '8px 16px', borderRadius: '20px', border: 'none',
-              fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s',
-              background: sortParam === btn.id ? '#fbc02d' : '#f5f5f5',
-              color: sortParam === btn.id ? '#000' : '#666',
-              boxShadow: sortParam === btn.id ? '0 2px 6px rgba(251, 192, 45, 0.4)' : 'none'
-            }}
-          >
-            {btn.label}
-          </button>
-        ))}
+      {/* ⚡ ВЫПАДАЮЩИЙ СПИСОК В СТИЛЕ КНОПКИ МОДЕРАТОРА */}
+      <div style={{ padding: '0 16px', marginBottom: '16px' }}>
+        <select 
+          value={sortParam}
+          onChange={(e) => setSortParam(e.target.value)}
+          style={{
+            padding: '8px 12px',
+            borderRadius: '12px',
+            border: '1px solid #fbc02d',
+            color: '#fbc02d',
+            fontWeight: 'bold',
+            background: 'transparent',
+            outline: 'none',
+            cursor: 'pointer',
+            fontSize: '13px',
+            width: 'auto',
+            appearance: 'auto'
+          }}
+        >
+          <option value="new">🆕 Сначала новые</option>
+          <option value="ending_soon">⏳ Скоро завершатся</option>
+          <option value="price_asc">📉 Сначала дешевые</option>
+          <option value="price_desc">📈 Сначала дорогие</option>
+          <option value="active">🔥 Самые обсуждаемые</option>
+        </select>
       </div>
 
       <div className="lots-grid">
