@@ -11,7 +11,7 @@ function Home({
   const [apiLots, setApiLots] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('Все');
-  const [sortParam, setSortParam] = useState('new'); // ⚡ Новое состояние сортировки
+  const [sortParam, setSortParam] = useState('new'); 
   const [now, setNow] = useState(Date.now());
 
   const categories = ['Все', 'Беспилотник', 'Аккумуляторы', 'Пульты', 'Очки/Шлемы', 'Запчасти', 'Прочее'];
@@ -21,25 +21,14 @@ function Home({
     return () => clearInterval(timer);
   }, []);
 
-  // ⚡ Загрузка лотов теперь зависит от sortParam
   useEffect(() => {
     setIsLoading(true);
     fetch(`${API_URL}/api/lots?sort=${sortParam}&t=${Date.now()}`)
-      .then(async res => {
-        if (!res.ok) throw new Error('Ошибка сервера');
-        return res.json();
-      })
-      .then(data => {
-        setApiLots(Array.isArray(data) ? data : []);
-      })
-      .catch(err => {
-        console.error("Ошибка загрузки витрины:", err);
-        setApiLots([]);
-      })
-      .finally(() => {
-        setIsLoading(false); 
-      });
-  }, [sortParam]); // Перезапрашиваем при смене сортировки
+      .then(res => res.json())
+      .then(data => setApiLots(Array.isArray(data) ? data : []))
+      .catch(() => setApiLots([]))
+      .finally(() => setIsLoading(false));
+  }, [sortParam]); 
 
   const formatTimeLeft = (endTime) => {
     if (!endTime) return '';
@@ -52,29 +41,23 @@ function Home({
     return `${m}m ${s}s`;
   };
 
-  const filteredLots = activeCategory === 'Все' 
-    ? apiLots 
-    : apiLots.filter(lot => lot.category === activeCategory);
+  const filteredLots = activeCategory === 'Все' ? apiLots : apiLots.filter(lot => lot.category === activeCategory);
+
+  const sortOptions = [
+    { id: 'new', label: '🆕 Новые' },
+    { id: 'ending_soon', label: '⏳ Скоро завершатся' },
+    { id: 'price_asc', label: '📉 Дешевые' },
+    { id: 'price_desc', label: '📈 Дорогие' },
+    { id: 'active', label: '🔥 Горячие' }
+  ];
 
   return (
     <>
-      <div className="main-header">
-        <h1 className="header-title" style={{ margin: 0 }}>Аукционы дронов</h1>
-        <button style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }} onClick={() => setCurrentScreen('profile')}>
-          👤
-        </button>
-      </div>
-
-      <input type="text" placeholder="Поиск дронов..." className="search-bar" />
+      <input type="text" placeholder="Поиск дронов..." className="search-bar" style={{ marginTop: '16px' }} />
 
       <div className="categories" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 16px', overflowX: 'hidden' }}>
         {categories.map((category) => (
-          <button 
-            key={category} 
-            style={{flexShrink: 0}} 
-            className={`category-btn ${activeCategory === category ? 'active' : ''}`} 
-            onClick={() => setActiveCategory(category)}
-          >
+          <button key={category} style={{flexShrink: 0}} className={`category-btn ${activeCategory === category ? 'active' : ''}`} onClick={() => setActiveCategory(category)}>
             {category}
           </button>
         ))}
@@ -82,27 +65,30 @@ function Home({
 
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 16px 8px 16px', fontSize: '12px', alignItems: 'center' }}>
         <span style={{ color: '#888' }}>{filteredLots.length} активных лотов</span>
-        
-        {/* ⚡ ВЫПАДАЮЩИЙ СПИСОК СОРТИРОВКИ */}
-        <select 
-          style={{ padding: '4px 8px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '12px', outline: 'none', background: '#fff' }}
-          value={sortParam}
-          onChange={(e) => setSortParam(e.target.value)}
-        >
-          <option value="new">Сначала новые</option>
-          <option value="ending_soon">Скоро завершатся</option>
-          <option value="price_asc">Сначала дешевые</option>
-          <option value="price_desc">Сначала дорогие</option>
-          <option value="active">Активные торги (горячие)</option>
-        </select>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 16px 8px 16px', fontSize: '12px' }}>
         {isAdmin && (
           <span style={{ color: '#fbc02d', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setCurrentScreen('adminDashboard')}>
             Панель модератора
           </span>
         )}
+      </div>
+
+      {/* ⚡ КРАСИВЫЕ КНОПКИ СОРТИРОВКИ */}
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '0 16px', marginBottom: '16px', paddingBottom: '4px' }}>
+        {sortOptions.map(btn => (
+          <button 
+            key={btn.id}
+            onClick={() => setSortParam(btn.id)}
+            style={{
+              flexShrink: 0, padding: '8px 16px', borderRadius: '20px', border: 'none',
+              fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s',
+              background: sortParam === btn.id ? '#fbc02d' : '#f5f5f5',
+              color: sortParam === btn.id ? '#000' : '#666',
+              boxShadow: sortParam === btn.id ? '0 2px 6px rgba(251, 192, 45, 0.4)' : 'none'
+            }}
+          >
+            {btn.label}
+          </button>
+        ))}
       </div>
 
       <div className="lots-grid">
@@ -117,39 +103,22 @@ function Home({
                 {lot.photos && lot.photos.length > 0 ? (
                   <img src={lot.photos[0]} alt="Lot" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
                 ) : '🚁'}
-                
-                <button 
-                  style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(255,255,255,0.8)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} 
-                  onClick={(e) => { e.stopPropagation(); toggleFavorite(lot); }}
-                >
+                <button style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(255,255,255,0.8)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); toggleFavorite(lot); }}>
                   {favoriteLots.some(fav => fav.id === lot.id) ? '❤️' : '♡'}
                 </button>
-                
                 <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
                   ⏱ {formatTimeLeft(lot.endTime)}
                 </div>
               </div>
-              
               <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="card-lot-id" style={{ fontSize: '12px', color: '#888' }}>
-                  Лот #{lot.id}
-                </span>
-                {lot.category && (
-                  <span className="tag-category" style={{ background: '#e3f2fd', color: '#1976d2', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
-                    {lot.category}
-                  </span>
-                )}
+                <span className="card-lot-id" style={{ fontSize: '12px', color: '#888' }}>Лот #{lot.id}</span>
+                {lot.category && <span className="tag-category" style={{ background: '#e3f2fd', color: '#1976d2', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>{lot.category}</span>}
               </div>
-              
-              <h3 className="lot-title" style={{ marginTop: '2px', fontSize: '16px', margin: '4px 0' }}>
-                {lot.title}
-              </h3>
+              <h3 className="lot-title" style={{ marginTop: '2px', fontSize: '16px', margin: '4px 0' }}>{lot.title}</h3>
               <div className="lot-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '12px' }}>
                 <div>
                   <span className="lot-label" style={{ fontSize: '11px', color: '#888', display: 'block' }}>Текущая ставка</span>
-                  <div className="lot-price" style={{ fontWeight: 'bold', fontSize: '14px' }}>
-                    {lot.currentPrice?.toLocaleString('ru-RU')} ₽
-                  </div>
+                  <div className="lot-price" style={{ fontWeight: 'bold', fontSize: '14px' }}>{lot.currentPrice?.toLocaleString('ru-RU')} ₽</div>
                 </div>
               </div>
             </div>

@@ -13,7 +13,6 @@ function Profile({
   const [activeProfileTab, setActiveProfileTab] = useState('lots');
   const [myLots, setMyLots] = useState([]);
   const [myBids, setMyBids] = useState([]);
-  const [dealsCount, setDealsCount] = useState(currentUser?.dealsCount || 0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -25,11 +24,10 @@ function Profile({
       .then(data => {
         setMyLots(Array.isArray(data.myLots) ? data.myLots : []);
         setMyBids(Array.isArray(data.myBids) ? data.myBids : []);
-        setDealsCount(data.dealsCount !== undefined ? data.dealsCount : (currentUser?.dealsCount || 0));
       })
       .catch(() => { setMyLots([]); setMyBids([]); })
       .finally(() => setIsLoading(false));
-  }, [currentUser.id, currentUser.dealsCount]);
+  }, [currentUser.id]);
 
   const getStatusBadge = (status) => {
     switch(status) {
@@ -52,13 +50,8 @@ function Profile({
 
   return (
     <>
-      <div className="screen-header">
-        <button className="back-btn" onClick={() => setCurrentScreen('home')}>{'<'}</button>
-        <h2 className="screen-title">Личный кабинет</h2>
-      </div>
-
       {isBanActive && (
-        <div style={{ background: '#ffebee', padding: '16px', margin: '0 16px 16px 16px', borderRadius: '12px', border: '1px solid #ef9a9a' }}>
+        <div style={{ background: '#ffebee', padding: '16px', margin: '16px', borderRadius: '12px', border: '1px solid #ef9a9a' }}>
           <h3 style={{ color: '#c62828', marginTop: 0, marginBottom: '8px', fontSize: '16px' }}>🚫 Ограничение аккаунта</h3>
           <p style={{ margin: '4px 0', fontSize: '14px', color: '#111' }}><strong>Причина:</strong> {currentUser.banReason || 'Нарушение правил'}</p>
           <p style={{ margin: '4px 0', fontSize: '14px', color: '#111' }}><strong>Что запрещено:</strong> {currentUser.banScope === 'BIDS' ? 'Делать ставки' : currentUser.banScope === 'LOTS' ? 'Создавать лоты' : 'Создавать лоты и делать ставки'}</p>
@@ -66,24 +59,21 @@ function Profile({
         </div>
       )}
       
-      <div className="profile-user-card" style={{ cursor: 'pointer' }} onClick={() => handleOpenPublicProfile(currentUser.id, 'profile')}>
+      <div className="profile-user-card" style={{ cursor: 'pointer', marginTop: isBanActive ? '0' : '16px' }} onClick={() => handleOpenPublicProfile(currentUser.id, 'profile')}>
         <div className="profile-info">
           <h3 className="profile-name">{currentUser.firstName || 'Гость'} (ID: {currentUser.id || '...'})</h3>
           <div className="profile-rating" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginTop: '6px' }}>
             <span>⭐️ {currentUser.rating > 0 ? currentUser.rating.toFixed(1) : '0.0'} рейтинг</span>
-            <span style={{ color: '#ccc' }}>•</span>
-            <span style={{ color: '#2e7d32', fontWeight: '500' }}>🤝 Успешных сделок: <b>{dealsCount}</b></span>
           </div>
         </div>
       </div>
 
-      {/* ⚡ Обновленный блок кнопок с Историей тикетов */}
+      {/* ⚡ ОДНА КНОПКА ПОДДЕРЖКИ ВМЕСТО ДВУХ */}
       <div className="profile-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '0 16px', marginBottom: '16px' }}>
-        <button className="action-btn" style={{ margin: 0 }} onClick={() => setCurrentScreen('feedback')}>💬 Поддержка</button>
-        <button className="action-btn" style={{ margin: 0, background: '#e3f2fd', color: '#1976d2', borderColor: '#bbdefb' }} onClick={() => setCurrentScreen('ticketHistory')}>🎧 Мои обращения</button>
+        <button className="action-btn" style={{ margin: 0, background: '#e3f2fd', color: '#1976d2', borderColor: '#bbdefb' }} onClick={() => setCurrentScreen('ticketHistory')}>🎧 Поддержка</button>
         <button className="action-btn" style={{ margin: 0 }} onClick={() => setCurrentScreen('settings')}>⚙️ Настройки</button>
         {isAdmin && (
-          <button className="action-btn" style={{ margin: 0, borderColor: '#fbc02d', color: '#fbc02d' }} onClick={() => setCurrentScreen('adminDashboard')}>👑 Админка</button>
+          <button className="action-btn" style={{ margin: 0, borderColor: '#fbc02d', color: '#fbc02d', gridColumn: 'span 2' }} onClick={() => setCurrentScreen('adminDashboard')}>👑 Админка</button>
         )}
       </div>
 

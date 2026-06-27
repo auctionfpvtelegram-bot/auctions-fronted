@@ -13,13 +13,16 @@ function TicketHistory({ setCurrentScreen, currentUser }) {
 
   return (
     <div style={{ background: '#f5f5f5', minHeight: '100vh', padding: '16px' }}>
-      <div className="screen-header" style={{ background: '#fff', margin: '-16px -16px 16px -16px', padding: '16px' }}>
-        <button className="back-btn" onClick={() => { activeTicket ? setActiveTicket(null) : setCurrentScreen('profile') }}>{'<'}</button>
-        <h2 className="screen-title">{activeTicket ? 'Диалог с поддержкой' : 'Мои обращения'}</h2>
-      </div>
-
       {!activeTicket ? (
         <div>
+          {/* ⚡ НОВАЯ КНОПКА СОЗДАНИЯ ОБРАЩЕНИЯ */}
+          <button 
+            onClick={() => setCurrentScreen('feedback')}
+            style={{ width: '100%', padding: '14px', background: '#fbc02d', color: '#000', fontWeight: 'bold', border: 'none', borderRadius: '12px', marginBottom: '16px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+          >
+            📝 Создать новое обращение
+          </button>
+
           {tickets.length === 0 ? <p style={{textAlign: 'center', color: '#888'}}>У вас пока нет обращений</p> : 
             tickets.map(t => (
               <div key={t.id} className="admin-card" onClick={() => setActiveTicket(t)} style={{ padding: '16px', marginBottom: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -34,6 +37,10 @@ function TicketHistory({ setCurrentScreen, currentUser }) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <button onClick={() => setActiveTicket(null)} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#1976d2', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}>
+            ← Назад к списку
+          </button>
+          
           <div style={{ background: '#e3f2fd', padding: '14px', borderRadius: '12px' }}>
             <strong style={{ color: '#1976d2', fontSize: '12px', display: 'block', marginBottom: '4px' }}>ВАШ ЗАПРОС:</strong>
             <p style={{ margin: 0, fontSize: '14px' }}>{activeTicket.topic}</p>
