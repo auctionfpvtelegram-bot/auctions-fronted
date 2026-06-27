@@ -15,7 +15,7 @@ import RejectedLot from './screens/RejectedLot';
 import Settings from './screens/Settings';
 import WriteReview from './screens/WriteReview';
 import TicketHistory from './screens/TicketHistory';
-import NotificationsPanel from './screens/NotificationsPanel';
+import NotificationsPanel from './components/NotificationsPanel';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
@@ -30,7 +30,7 @@ function App() {
   
   const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [globalBanner, setGlobalBanner] = useState({ isBannerOn: false, bannerText: '' });
+  const [globalBanner, setGlobalBanner] = useState({ isBannerOn: false, bannerText: '', bannerLink: '' });
 
   const [currentUser, setCurrentUser] = useState({
     id: null, firstName: 'Гость', rating: 0.0, dealsCount: 0,
@@ -56,7 +56,10 @@ function App() {
   };
 
   useEffect(() => {
-    fetch(`${API_URL}/api/settings`).then(res => res.json()).then(data => setGlobalBanner(data)).catch(() => {});
+    fetch(`${API_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => setGlobalBanner(data))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -95,7 +98,6 @@ function App() {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  // ⚡ Логика динамического заголовка
   const getPageTitle = () => {
     switch(currentScreen) {
       case 'home': return 'Аукционы дронов';
@@ -114,7 +116,6 @@ function App() {
     }
   };
 
-  // ⚡ Логика кнопки "Назад" в докбаре
   const handleBackClick = () => {
     if (['activeLot', 'completedLot', 'rejectedLot', 'publicProfile', 'ticketHistory', 'settings', 'adminDashboard', 'feedback'].includes(currentScreen)) {
       setCurrentScreen('profile');
@@ -128,9 +129,24 @@ function App() {
   return (
     <div className="app-container" style={{ paddingTop: globalBanner.isBannerOn ? '100px' : '60px' }}>
       
+      {/* ⚡ ГЛОБАЛЬНЫЙ БАННЕР */}
       {globalBanner.isBannerOn && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', background: '#ff9800', color: '#fff', padding: '10px 16px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold', zIndex: 1000, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <div 
+          onClick={() => {
+            if (globalBanner.bannerLink) {
+              window.Telegram?.WebApp?.openLink(globalBanner.bannerLink) || window.open(globalBanner.bannerLink, '_blank');
+            }
+          }}
+          style={{ 
+            position: 'fixed', top: 0, left: 0, width: '100%', background: '#ff9800', color: '#fff', 
+            padding: '10px 16px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold', 
+            zIndex: 1000, boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            cursor: globalBanner.bannerLink ? 'pointer' : 'default',
+            boxSizing: 'border-box'
+          }}
+        >
           📢 {globalBanner.bannerText}
+          {globalBanner.bannerLink && <span style={{ textDecoration: 'underline', marginLeft: '6px' }}>(Перейти)</span>}
         </div>
       )}
 

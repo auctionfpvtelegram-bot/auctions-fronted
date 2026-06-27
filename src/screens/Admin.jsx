@@ -4,9 +4,9 @@ import { API_URL } from '../config';
 function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) {
   const [adminScreen, setAdminScreen] = useState('dashboard');
   
-  // ⚡ Новые состояния для дашборда и баннера
+  // Состояния для дашборда и баннера
   const [adminStats, setAdminStats] = useState(null);
-  const [globalBanner, setGlobalBanner] = useState({ isBannerOn: false, bannerText: '' });
+  const [globalBanner, setGlobalBanner] = useState({ isBannerOn: false, bannerText: '', bannerLink: '' });
   
   const [adminLotsList, setAdminLotsList] = useState([]);
   const [adminActiveTab, setAdminActiveTab] = useState('check'); // check | active | archive
@@ -14,14 +14,16 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
   const [adminReviewsList, setAdminReviewsList] = useState([]);
   const [adminReviewsTab, setAdminReviewsTab] = useState('MODERATION');
   
+  // Состояния для чатов
   const [adminTickets, setAdminTickets] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessageText, setNewMessageText] = useState('');
+  const [adminSelectedPhoto, setAdminSelectedPhoto] = useState(null);
 
   const [adminModal, setAdminModal] = useState(null);
   const [selectedLot, setSelectedLot] = useState(null);
-  const [selectedReview, setSelectedReview] = useState(null); // Для отклонения отзывов
+  const [selectedReview, setSelectedReview] = useState(null);
   const [rejectComment, setRejectComment] = useState('');
 
   const [searchUserId, setSearchUserId] = useState('');
@@ -31,7 +33,7 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
   const [banScope, setBanScope] = useState('ALL');
   const [banDays, setBanDays] = useState('');
 
-  // ⚡ Загрузка статистики и настроек при открытии админки
+  // Загрузка статистики и настроек при открытии админки
   useEffect(() => {
     if (adminScreen === 'dashboard') {
       fetch(`${API_URL}/api/admin/stats`).then(res => res.json()).then(data => setAdminStats(data)).catch(console.error);
@@ -59,10 +61,7 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
         setAdminLotsList(Array.isArray(data) ? data : []); 
         setAdminScreen('lots'); 
       })
-      .catch(err => {
-        console.error(err);
-        setAlertData({ message: '❌ Ошибка связи с сервером.' });
-      });
+      .catch(err => setAlertData({ message: '❌ Ошибка связи с сервером.' }));
   };
 
   const loadAdminReviews = () => {
@@ -76,10 +75,7 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
         setAdminReviewsTab('MODERATION'); 
         setAdminScreen('reviews'); 
       })
-      .catch(err => {
-        console.error(err);
-        setAlertData({ message: '❌ Ошибка связи с сервером.' });
-      });
+      .catch(err => setAlertData({ message: '❌ Ошибка связи с сервером.' }));
   };
 
   const loadTickets = () => {
@@ -92,10 +88,7 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
         setAdminTickets(Array.isArray(data) ? data : []); 
         setAdminScreen('feedback'); 
       })
-      .catch(err => {
-        console.error(err);
-        setAlertData({ message: '❌ Ошибка связи с сервером.' });
-      });
+      .catch(err => setAlertData({ message: '❌ Ошибка связи с сервером.' }));
   };
 
   const loadMessages = (ticketId) => {
@@ -111,18 +104,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
       return () => clearInterval(interval);
     }
   }, [activeChat]);
-
-  const sendMessage = () => {
-    if (!newMessageText.trim() || !activeChat) return;
-    fetch(`${API_URL}/api/tickets/${activeChat}/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ authorId: currentUser.id, text: newMessageText })
-    }).then(() => {
-      setNewMessageText('');
-      loadMessages(activeChat);
-    });
-  };
 
   const handleUpdateLotStatus = (lotId, newStatus, reason = null) => {
     fetch(`${API_URL}/api/lots/${lotId}/status`, {
@@ -153,7 +134,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
     });
   };
 
-  // ⚡ Функция отклонения отзыва с причиной
   const rejectReviewWithReason = () => {
     if (!rejectComment.trim()) return setAlertData({ message: 'Укажите причину!' });
     fetch(`${API_URL}/api/reviews/${selectedReview.id}/status`, {
@@ -219,22 +199,18 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
         banScope: updatedUser.banScope,
         banUntil: updatedUser.banUntil
       }));
-      setAlertData({ message: isBanned ? '🚫 Пользователь успешно ограничен' : '✅ Пользователь полностью разблокирован' });
+      setAlertData({ message: isBanned ? '🚫 Пользователь ограничен' : '✅ Разблокирован' });
     })
-    .catch(() => setAlertData({ message: '❌ Ошибка при изменении статуса пользователя' }));
+    .catch(() => setAlertData({ message: '❌ Ошибка' }));
   };
 
   if (adminScreen === 'dashboard') {
     return (
-      <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
-        <div className="screen-header" style={{ background: 'transparent', margin: 0, padding: '16px 0', borderBottom: 'none' }}>
-          <button className="back-btn" onClick={() => setCurrentScreen('profile')}>{'<'}</button>
-          <h2 className="screen-title" style={{ fontSize: '18px' }}>Панель модератора</h2>
-        </div>
+      <div style={{ background: '#f5f5f5', minHeight: '100vh', padding: '16px' }}>
         
-        {/* ⚡ ДАШБОРД СО СТАТИСТИКОЙ */}
+        {/* Дашборд со статистикой */}
         {adminStats && (
-          <div style={{ padding: '0 16px', marginBottom: '20px' }}>
+          <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
               <div className="admin-stat-card" style={{ background: '#fff', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
                 <h2 style={{ margin: '0', color: '#1976d2', fontSize: '24px' }}>{adminStats.usersCount}</h2>
@@ -258,8 +234,8 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
           </div>
         )}
 
-        {/* ⚡ НАСТРОЙКИ ГЛОБАЛЬНОГО БАННЕРА */}
-        <div style={{ padding: '0 16px', marginBottom: '20px' }}>
+        {/* Настройки глобального баннера */}
+        <div style={{ marginBottom: '20px' }}>
           <div style={{ background: '#fff', padding: '16px', borderRadius: '12px' }}>
             <h3 style={{ margin: '0 0 12px 0', fontSize: '14px' }}>📢 Глобальное объявление</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -274,12 +250,20 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
             <input 
               type="text" 
               className="input-field" 
-              style={{ marginBottom: '12px' }}
+              style={{ marginBottom: '8px' }}
               placeholder="Текст баннера (напр. Техработы в 10:00)" 
               value={globalBanner.bannerText || ''} 
               onChange={(e) => setGlobalBanner({...globalBanner, bannerText: e.target.value})} 
             />
-            <button className="submit-btn" style={{ margin: 0, padding: '10px' }} onClick={saveBannerSettings}>Сохранить баннер</button>
+            <input 
+              type="text" 
+              className="input-field" 
+              style={{ marginBottom: '12px' }}
+              placeholder="Ссылка для перехода (необязательно)" 
+              value={globalBanner.bannerLink || ''} 
+              onChange={(e) => setGlobalBanner({...globalBanner, bannerLink: e.target.value})} 
+            />
+            <button className="submit-btn" style={{ margin: 0, padding: '10px' }} onClick={saveBannerSettings}>Сохранить настройки</button>
           </div>
         </div>
 
@@ -306,103 +290,63 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
   }
 
   if (adminScreen === 'users') {
-    // ... (код экрана пользователей остался без изменений, чтобы не раздувать ответ)
     return (
-        <div style={{ background: '#f5f5f5', minHeight: '100vh', padding: '16px' }}>
-          <div className="screen-header" style={{ background: '#fff', margin: '-16px -16px 16px -16px', padding: '16px' }}>
-            <button className="back-btn" onClick={() => { setAdminScreen('dashboard'); setFoundUser(null); setSearchUserId(''); }}>{'<'}</button>
-            <h2 className="screen-title">Управление пользователями</h2>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-            <input 
-              type="text" 
-              placeholder="Введите ID пользователя..." 
-              className="input-field" 
-              style={{ marginBottom: 0 }}
-              value={searchUserId} 
-              onChange={(e) => setSearchUserId(e.target.value)} 
-            />
-            <button className="submit-btn" style={{ margin: 0, width: 'auto', padding: '0 20px' }} onClick={handleSearchUser}>Поиск</button>
-          </div>
-  
-          {foundUser && (
-            <div className="admin-card" style={{ padding: '20px' }}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>
-                {foundUser.firstName || 'Без имени'} (ID: {foundUser.id})
-              </h3>
-              <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#666' }}>Рейтинг: {foundUser.rating.toFixed(1)} ⭐</p>
-  
-              <div style={{ background: foundUser.isBanned ? '#ffebee' : '#e8f5e9', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
-                <span style={{ fontWeight: 'bold', color: foundUser.isBanned ? '#c62828' : '#2e7d32' }}>
-                  Статус: {foundUser.isBanned ? '🚫 Активны ограничения' : '✅ Чист (без банов)'}
-                </span>
-                {foundUser.isBanned && foundUser.banUntil && (
-                  <div style={{ fontSize: '12px', marginTop: '4px', color: '#666' }}>
-                    Действует до: {new Date(foundUser.banUntil).toLocaleDateString('ru-RU')}
-                  </div>
-                )}
-              </div>
-  
-              {foundUser.isBanned ? (
-                <button 
-                  style={{ background: '#2e7d32', color: '#fff', padding: '14px', borderRadius: '8px', width: '100%', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
-                  onClick={() => handleToggleBan(false)}
-                >
-                  Разблокировать пользователя
-                </button>
-              ) : (
-                <>
-                  <select className="input-field" value={banScope} onChange={e => setBanScope(e.target.value)}>
-                    <option value="ALL">Полная блокировка (Всё)</option>
-                    <option value="BIDS">Запрет только на ставки</option>
-                    <option value="LOTS">Запрет только на публикацию лотов</option>
-                  </select>
-  
-                  <input 
-                    type="number" 
-                    placeholder="Количество дней блокировки" 
-                    className="input-field" 
-                    value={banDays}
-                    onChange={(e) => setBanDays(e.target.value)}
-                  />
-  
-                  <input 
-                    type="text" 
-                    placeholder="Причина (для пользователя)" 
-                    className="input-field" 
-                    value={banReasonInput}
-                    onChange={(e) => setBanReasonInput(e.target.value)}
-                  />
-  
-                  <button 
-                    style={{ background: '#c62828', color: '#fff', padding: '14px', borderRadius: '8px', width: '100%', fontWeight: 'bold', border: 'none', cursor: 'pointer', marginTop: '8px' }}
-                    onClick={() => handleToggleBan(true)}
-                  >
-                    Применить ограничения
-                  </button>
-                </>
+      <div style={{ background: '#f5f5f5', minHeight: '100vh', padding: '16px' }}>
+        <button onClick={() => { setAdminScreen('dashboard'); setFoundUser(null); setSearchUserId(''); }} style={{ background: 'none', border: 'none', color: '#1976d2', fontWeight: 'bold', cursor: 'pointer', padding: 0, marginBottom: '16px' }}>← Назад в меню</button>
+        
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+          <input 
+            type="text" placeholder="Введите ID пользователя..." className="input-field" 
+            style={{ marginBottom: 0 }} value={searchUserId} onChange={(e) => setSearchUserId(e.target.value)} 
+          />
+          <button className="submit-btn" style={{ margin: 0, width: 'auto', padding: '0 20px' }} onClick={handleSearchUser}>Поиск</button>
+        </div>
+
+        {foundUser && (
+          <div className="admin-card" style={{ padding: '20px' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>{foundUser.firstName || 'Без имени'} (ID: {foundUser.id})</h3>
+            <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#666' }}>Рейтинг: {foundUser.rating.toFixed(1)} ⭐</p>
+
+            <div style={{ background: foundUser.isBanned ? '#ffebee' : '#e8f5e9', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+              <span style={{ fontWeight: 'bold', color: foundUser.isBanned ? '#c62828' : '#2e7d32' }}>
+                Статус: {foundUser.isBanned ? '🚫 Активны ограничения' : '✅ Чист (без банов)'}
+              </span>
+              {foundUser.isBanned && foundUser.banUntil && (
+                <div style={{ fontSize: '12px', marginTop: '4px', color: '#666' }}>Действует до: {new Date(foundUser.banUntil).toLocaleDateString('ru-RU')}</div>
               )}
             </div>
-          )}
-        </div>
-      );
+
+            {foundUser.isBanned ? (
+              <button style={{ background: '#2e7d32', color: '#fff', padding: '14px', borderRadius: '8px', width: '100%', fontWeight: 'bold', border: 'none', cursor: 'pointer' }} onClick={() => handleToggleBan(false)}>Разблокировать пользователя</button>
+            ) : (
+              <>
+                <select className="input-field" value={banScope} onChange={e => setBanScope(e.target.value)}>
+                  <option value="ALL">Полная блокировка (Всё)</option>
+                  <option value="BIDS">Запрет только на ставки</option>
+                  <option value="LOTS">Запрет только на публикацию лотов</option>
+                </select>
+                <input type="number" placeholder="Количество дней блокировки" className="input-field" value={banDays} onChange={(e) => setBanDays(e.target.value)} />
+                <input type="text" placeholder="Причина (для пользователя)" className="input-field" value={banReasonInput} onChange={(e) => setBanReasonInput(e.target.value)} />
+                <button style={{ background: '#c62828', color: '#fff', padding: '14px', borderRadius: '8px', width: '100%', fontWeight: 'bold', border: 'none', cursor: 'pointer', marginTop: '8px' }} onClick={() => handleToggleBan(true)}>Применить ограничения</button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (adminScreen === 'lots') {
     return (
       <div style={{ background: '#f5f5f5', minHeight: '100vh', padding: '16px' }}>
-        <div className="screen-header" style={{ background: '#fff', margin: '-16px -16px 16px -16px', padding: '16px' }}>
-          <button className="back-btn" onClick={() => setAdminScreen('dashboard')}>{'<'}</button>
-          <h2 className="screen-title">Лоты</h2>
-        </div>
+        <button onClick={() => setAdminScreen('dashboard')} style={{ background: 'none', border: 'none', color: '#1976d2', fontWeight: 'bold', cursor: 'pointer', padding: 0, marginBottom: '16px' }}>← Назад в меню</button>
+        
         <div className="profile-tabs" style={{ marginBottom: '16px', gap: '4px' }}>
           <button className={`tab-btn ${adminActiveTab === 'check' ? 'active' : ''}`} onClick={() => setAdminActiveTab('check')} style={{flex: 1, padding: '8px'}}>На проверке</button>
           <button className={`tab-btn ${adminActiveTab === 'active' ? 'active' : ''}`} onClick={() => setAdminActiveTab('active')} style={{flex: 1, padding: '8px'}}>Активные</button>
           <button className={`tab-btn ${adminActiveTab === 'archive' ? 'active' : ''}`} onClick={() => setAdminActiveTab('archive')} style={{flex: 1, padding: '8px'}}>Архив</button>
         </div>
 
-        {/* Сетка лотов на проверке */}
         {adminActiveTab === 'check' && adminLotsList.filter(l => l.status === 'MODERATION').map(lot => (
           <div key={lot.id} className="admin-card" style={{ padding: '16px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
@@ -418,7 +362,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
           </div>
         ))}
 
-        {/* Сетка активных лотов */}
         {adminActiveTab === 'active' && adminLotsList.filter(l => l.status === 'ACTIVE').map(lot => (
           <div key={lot.id} className="admin-card" style={{ padding: '16px', marginBottom: '16px' }}>
             <span style={{ fontWeight: 'bold', fontSize: '18px' }}>Текущая: {lot.currentPrice.toLocaleString('ru-RU')} ₽</span>
@@ -427,7 +370,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
           </div>
         ))}
 
-        {/* ⚡ АРХИВ ЛОТОВ */}
         {adminActiveTab === 'archive' && adminLotsList.filter(l => l.status === 'COMPLETED' || l.status === 'REJECTED').map(lot => (
           <div key={lot.id} className="admin-card" style={{ padding: '16px', marginBottom: '16px', opacity: 0.8 }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -444,7 +386,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
           </div>
         ))}
 
-        {/* Модалка отклонения лота */}
         {adminModal === 'rejectLot' && (
           <div className="modal-overlay" onClick={() => setAdminModal(null)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -465,10 +406,8 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
     const filteredReviews = adminReviewsList.filter(r => r.status === adminReviewsTab);
     return (
       <div style={{ background: '#f5f5f5', minHeight: '100vh', padding: '16px' }}>
-        <div className="screen-header" style={{ background: '#fff', margin: '-16px -16px 16px -16px', padding: '16px' }}>
-          <button className="back-btn" onClick={() => setAdminScreen('dashboard')}>{'<'}</button>
-          <h2 className="screen-title">Отзывы</h2>
-        </div>
+        <button onClick={() => setAdminScreen('dashboard')} style={{ background: 'none', border: 'none', color: '#1976d2', fontWeight: 'bold', cursor: 'pointer', padding: 0, marginBottom: '16px' }}>← Назад в меню</button>
+        
         <div className="profile-tabs" style={{ marginBottom: '16px' }}>
           <button className={`tab-btn ${adminReviewsTab === 'MODERATION' ? 'active' : ''}`} onClick={() => setAdminReviewsTab('MODERATION')}>На проверке</button>
           <button className={`tab-btn ${adminReviewsTab === 'ACTIVE' ? 'active' : ''}`} onClick={() => setAdminReviewsTab('ACTIVE')}>Опубликованные</button>
@@ -476,7 +415,7 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
         {filteredReviews.length === 0 ? (<p style={{ textAlign: 'center', color: '#888' }}>Пусто 🎉</p>) : filteredReviews.map(rev => (
           <div key={rev.id} className="admin-card" style={{ padding: '16px', marginBottom: '16px' }}>
             <div className="admin-card-header">
-              <span style={{ fontSize: '12px', color: '#666' }}>Автор: {rev.authorId} ➔ Цель: {rev.targetId}</span>
+              <span style={{ fontSize: '12px', color: '#666' }}>Автор: {rev.authorId}</span>
               <span style={{ color: '#ffcc00', letterSpacing: '2px', fontSize: '14px' }}>{'★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating)}</span>
             </div>
             <p style={{ fontSize: '14px', margin: '8px 0' }}>{rev.text}</p>
@@ -491,7 +430,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
           </div>
         ))}
 
-        {/* ⚡ Модалка отклонения отзыва */}
         {adminModal === 'rejectReview' && (
           <div className="modal-overlay" onClick={() => setAdminModal(null)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -509,53 +447,93 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
   }
 
   if (adminScreen === 'feedback') {
-    // ... (код чата с обратной связью остался без изменений)
-    if (activeChat) {
-        const activeTicket = adminTickets.find((t) => t.id === activeChat);
-        return (
-          <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
-            <div className="chat-wrapper" style={{ background: '#fff', borderRadius: '0', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <div className="chat-header">
-                <button className="back-btn" onClick={() => setActiveChat(null)}>{'<'}</button>
-                <div className="chat-header-info">
-                  <h2 className="chat-header-title">{activeTicket?.topic}</h2>
-                  <p className="chat-header-subtitle">Пользователь: {activeTicket?.authorId}</p>
-                </div>
-              </div>
-              <div className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-                {chatMessages.map(msg => (
-                  <div key={msg.id} className={`message-bubble ${msg.authorId === currentUser.id ? 'message-out' : 'message-in'}`}>
-                    {msg.text}
-                    <span className="message-time">{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="chat-input-area" style={{ padding: '16px', background: '#f5f5f5' }}>
-                <input type="text" className="chat-input" placeholder="Ответ от поддержки..." value={newMessageText} onChange={e => setNewMessageText(e.target.value)} />
-                <button className="chat-send-btn" onClick={sendMessage}>➤</button>
-              </div>
-            </div>
-          </div>
-        );
+    const handleFileChange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => setAdminSelectedPhoto(reader.result);
+        reader.readAsDataURL(file);
       }
+    };
+
+    const sendMessageWithPhoto = () => {
+      if (!newMessageText.trim() && !adminSelectedPhoto) return;
+      fetch(`${API_URL}/api/tickets/${activeChat}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ authorId: currentUser.id, text: newMessageText, photo: adminSelectedPhoto })
+      }).then(() => {
+        setNewMessageText('');
+        setAdminSelectedPhoto(null);
+        loadMessages(activeChat);
+      });
+    };
+
+    if (activeChat) {
+      const activeTicket = adminTickets.find((t) => t.id === activeChat);
       return (
-        <div style={{ background: '#f5f5f5', minHeight: '100vh', padding: '16px' }}>
-          <div className="screen-header" style={{ background: '#fff', margin: '-16px -16px 16px -16px', padding: '16px' }}>
-            <button className="back-btn" onClick={() => setAdminScreen('dashboard')}>{'<'}</button>
-            <h2 className="screen-title">Обращения</h2>
+        <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '16px', background: '#fff', borderBottom: '1px solid #eee' }}>
+             <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: '#1976d2', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}>← К списку обращений</button>
           </div>
-          <div className="ticket-list">
-            {adminTickets.map((ticket) => (
-              <div key={ticket.id} className="ticket-card" onClick={() => setActiveChat(ticket.id)} style={{ background: '#fff', border: '1px solid #eee', marginBottom: '12px', borderRadius: '12px', padding: '16px', cursor: 'pointer' }}>
-                <div className="ticket-info">
-                  <h4 className="ticket-title" style={{ margin: '0 0 6px 0', fontSize: '15px' }}>{ticket.topic}</h4>
-                  <p className="ticket-preview" style={{ margin: 0, fontSize: '13px', color: '#666' }}>ID {ticket.authorId}</p>
+          
+          <div className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
+            {chatMessages.map(msg => {
+              const isMe = msg.authorId === currentUser.id;
+              return (
+                <div key={msg.id} style={{ 
+                    alignSelf: isMe ? 'flex-end' : 'flex-start',
+                    background: isMe ? '#e3f2fd' : '#fff', 
+                    padding: '10px 14px', borderRadius: '16px', 
+                    borderBottomRightRadius: isMe ? '4px' : '16px',
+                    borderBottomLeftRadius: !isMe ? '4px' : '16px',
+                    border: '1px solid #eee', maxWidth: '85%', marginBottom: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                 }}>
+                  {msg.photo && <img src={`${API_URL}/api/photos/${msg.photo}`} alt="attachment" style={{ width: '100%', borderRadius: '8px', marginBottom: '4px', objectFit: 'cover' }} />}
+                  {msg.text && <p style={{ margin: 0, fontSize: '14px', wordBreak: 'break-word', color: '#111' }}>{msg.text}</p>}
+                  <span style={{ fontSize: '10px', color: '#888', display: 'block', marginTop: '4px', textAlign: isMe ? 'right' : 'left' }}>
+                    {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </span>
                 </div>
+              );
+            })}
+          </div>
+
+          <div style={{ position: 'fixed', bottom: 0, left: 0, width: '100%', background: '#fff', borderTop: '1px solid #eee', display: 'flex', flexDirection: 'column', zIndex: 1000 }}>
+            {adminSelectedPhoto && (
+              <div style={{ padding: '8px 16px', position: 'relative', borderBottom: '1px solid #eee' }}>
+                <img src={adminSelectedPhoto} alt="preview" style={{ height: '60px', borderRadius: '8px' }} />
+                <button onClick={() => setAdminSelectedPhoto(null)} style={{ position: 'absolute', top: '4px', left: '10px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '22px', height: '22px' }}>×</button>
               </div>
-            ))}
+            )}
+            <div style={{ display: 'flex', padding: '12px 16px', gap: '8px', alignItems: 'center' }}>
+              <input type="file" id="admin-chat-file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+              <label htmlFor="admin-chat-file" style={{ fontSize: '24px', cursor: 'pointer', margin: 0, color: '#888' }}>📎</label>
+              <input type="text" placeholder="Ответ..." value={newMessageText} onChange={e => setNewMessageText(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessageWithPhoto()} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #ccc', outline: 'none', fontSize: '16px' }} />
+              <button onClick={sendMessageWithPhoto} style={{ background: '#fbc02d', color: '#000', border: 'none', borderRadius: '12px', padding: '0 16px', fontWeight: 'bold', cursor: 'pointer', height: '44px' }}>➤</button>
+            </div>
           </div>
         </div>
       );
+    }
+    
+    return (
+      <div style={{ background: '#f5f5f5', minHeight: '100vh', padding: '16px' }}>
+        <button onClick={() => setAdminScreen('dashboard')} style={{ background: 'none', border: 'none', color: '#1976d2', fontWeight: 'bold', cursor: 'pointer', padding: 0, marginBottom: '16px' }}>← В меню модератора</button>
+        
+        <div className="ticket-list">
+          {adminTickets.map((ticket) => (
+            <div key={ticket.id} className="ticket-card" onClick={() => setActiveChat(ticket.id)} style={{ background: '#fff', border: '1px solid #eee', marginBottom: '12px', borderRadius: '12px', padding: '16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '15px' }}>{ticket.topic}</h4>
+                <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>От: {ticket.authorId}</p>
+              </div>
+              <span style={{color: '#ccc', fontSize: '20px'}}>{'>'}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
   return null;
 }
