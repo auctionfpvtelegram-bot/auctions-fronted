@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import './App.css';
-
-import { API_URL } from './config'; 
-
-import Home from './screens/Home'; 
+import { API_URL } from './config';
+import Home from './screens/Home';
 import Profile from './screens/Profile';
 import ActiveLot from './screens/ActiveLot';
 import AddLot from './screens/AddLot';
@@ -21,13 +19,10 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
   const [selectedLot, setSelectedLot] = useState(null);
   const [favoriteLots, setFavoriteLots] = useState([]);
-  
   const [publicProfileData, setPublicProfileData] = useState(null);
   const [publicProfileReferrer, setPublicProfileReferrer] = useState('home');
-
   const [alertData, setAlertData] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
-  
   const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [globalBanner, setGlobalBanner] = useState({ isBannerOn: false, bannerText: '', bannerLink: '' });
@@ -65,10 +60,13 @@ function App() {
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.ready(); tg.expand(); }
-    
     const tgUser = tg?.initDataUnsafe?.user || { id: '7688251487', username: 'neffec', first_name: 'Admin' };
 
-    fetch(`${API_URL}/api/auth`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tgUser) })
+    fetch(`${API_URL}/api/auth`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify(tgUser) 
+    })
       .then(res => res.json())
       .then(user => setCurrentUser({
           id: String(user.id), firstName: user.firstName || 'Гость', rating: user.rating || 0.0,
@@ -81,8 +79,8 @@ function App() {
   useEffect(() => {
     if (currentUser.id) {
       const fetchNotifs = () => fetch(`${API_URL}/api/users/${currentUser.id}/notifications`).then(res => res.json()).then(data => setNotifications(Array.isArray(data) ? data : []));
-      fetchNotifs(); 
-      const interval = setInterval(fetchNotifs, 10000); 
+      fetchNotifs();
+      const interval = setInterval(fetchNotifs, 10000);
       return () => clearInterval(interval);
     }
   }, [currentUser.id]);
@@ -128,7 +126,6 @@ function App() {
 
   return (
     <div className="app-container" style={{ paddingTop: globalBanner.isBannerOn ? '100px' : '60px' }}>
-      
       {/* ⚡ ГЛОБАЛЬНЫЙ БАННЕР */}
       {globalBanner.isBannerOn && (
         <div 
@@ -157,25 +154,25 @@ function App() {
         padding: '0 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', zIndex: 999, boxSizing: 'border-box'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-           {currentScreen !== 'home' && (
-              <button onClick={handleBackClick} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', padding: '0 8px 0 0', color: '#111', lineHeight: 1 }}>{'<'}</button>
-           )}
-           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{getPageTitle()}</h2>
+          {currentScreen !== 'home' && (
+            <button onClick={handleBackClick} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', padding: '0 8px 0 0', color: '#111', lineHeight: 1 }}>{'<'}</button>
+          )}
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{getPageTitle()}</h2>
         </div>
         
         {currentUser.id && currentScreen !== 'adminDashboard' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-             <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setIsNotifOpen(true)}>
-                <span style={{ fontSize: '22px' }}>🔔</span>
-                {unreadCount > 0 && (
-                   <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#c62828', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                      {unreadCount}
-                   </span>
-                )}
-             </div>
-             <div style={{ cursor: 'pointer', fontSize: '22px' }} onClick={() => setCurrentScreen('profile')}>
-                👤
-             </div>
+            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setIsNotifOpen(true)}>
+              <span style={{ fontSize: '22px' }}>🔔</span>
+              {unreadCount > 0 && (
+                <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#c62828', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+            <div style={{ cursor: 'pointer', fontSize: '22px' }} onClick={() => setCurrentScreen('profile')}>
+              👤
+            </div>
           </div>
         )}
       </div>
@@ -183,10 +180,21 @@ function App() {
       {isNotifOpen && (
         <NotificationsPanel notifications={notifications} userId={currentUser.id} onClose={() => setIsNotifOpen(false)} onRead={() => setNotifications(notifications.map(n => ({...n, isRead: true})))} />
       )}
-         
+      
       {currentScreen === 'home' && <Home setCurrentScreen={setCurrentScreen} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} isAdmin={isAdmin} />}
       {currentScreen === 'profile' && <Profile setCurrentScreen={setCurrentScreen} currentUser={currentUser} isAdmin={isAdmin} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
-      {currentScreen === 'activeLot' && <ActiveLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} lot={selectedLot} />}
+      
+      {/* ⚡ ИСПРАВЛЕННАЯ СТРОКА ДЛЯ ActiveLot */}
+      {currentScreen === 'activeLot' && <ActiveLot 
+        setCurrentScreen={setCurrentScreen} 
+        currentUser={currentUser} 
+        selectedLot={selectedLot} 
+        isAdmin={isAdmin}
+        isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)} 
+        toggleFavorite={toggleFavorite} 
+        handleOpenPublicProfile={handleOpenPublicProfile} 
+      />}
+      
       {currentScreen === 'addLot' && <AddLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
       {currentScreen === 'adminDashboard' && <Admin setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} setConfirmData={setConfirmData} />}
       {currentScreen === 'completedLot' && <CompletedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
@@ -196,7 +204,6 @@ function App() {
       {currentScreen === 'settings' && <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
       {currentScreen === 'writeReview' && <WriteReview setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} setAlertData={setAlertData} />}
       {currentScreen === 'ticketHistory' && <TicketHistory setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
-
     </div>
   );
 }
