@@ -1,0 +1,77 @@
+import React from 'react';
+
+export function AdminTickets({ 
+  adminTickets, activeChat, setActiveChat, chatMessages, setChatMessages, 
+  newMessageText, setNewMessageText, loadMessages, sendMessageWithPhoto, 
+  setAdminScreen, handlePhotoSelect, adminSelectedPhoto, currentUser 
+}) {
+
+  const activeTicket = adminTickets.find(t => t.id === activeChat);
+
+  if (activeChat) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f9f9f9' }}>
+        {/* Шапка чата */}
+        <div style={{ padding: '14px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>←</button>
+          <div>
+            <div style={{ fontWeight: 'bold', fontSize: '15px' }}>Тикет #{activeChat}</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>Автор ID: {activeTicket?.authorId}</div>
+          </div>
+        </div>
+
+        {/* Сообщения */}
+        <div className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
+          {/* Суть обращения (наша прошлая фикса) */}
+          {activeTicket && (
+            <div style={{ alignSelf: 'flex-start', background: '#fff8e1', padding: '12px 14px', borderRadius: '16px', borderBottomLeftRadius: '4px', border: '1px solid #ffe0b2', maxWidth: '85%', marginBottom: '12px' }}>
+              <span style={{ fontSize: '11px', color: '#f57c00', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>📌 ПЕРВОЕ СООБЩЕНИЕ (СУТЬ):</span>
+              <p style={{ margin: 0, fontSize: '14px', color: '#111', fontWeight: '500' }}>{activeTicket.topic}</p>
+            </div>
+          )}
+
+          {/* Переписка */}
+          {Array.isArray(chatMessages) && chatMessages.map(msg => {
+            const isMe = currentUser && msg.authorId === currentUser.id;
+            return (
+              <div key={msg.id} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', background: isMe ? '#e3f2fd' : '#fff', padding: '10px 14px', borderRadius: '16px', borderBottomRightRadius: isMe ? '4px' : '16px', borderBottomLeftRadius: isMe ? '16px' : '4px', maxWidth: '80%', marginBottom: '10px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+                {msg.photo && <img src={`${msg.photo}`} alt="" style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '6px' }} />}
+                <p style={{ margin: 0, fontSize: '14px' }}>{msg.text}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Панель ввода */}
+        <div style={{ padding: '12px', background: '#fff', borderTop: '1px solid #eee' }}>
+          {adminSelectedPhoto && (
+            <div style={{ fontSize: '12px', color: '#2e7d32', marginBottom: '6px' }}>📸 Фотография выбрана для отправки</div>
+          )}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: '#eee', borderRadius: '12px', cursor: 'pointer', fontSize: '20px' }}>
+              📎
+              <input type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: 'none' }} />
+            </label>
+            <input type="text" value={newMessageText} onChange={(e) => setNewMessageText(e.target.value)} placeholder="Введите ответ..." style={{ flex: 1, height: '44px', border: '1px solid #ddd', borderRadius: '12px', padding: '0 12px', fontSize: '14px', outline: 'none' }} />
+            <button onClick={sendMessageWithPhoto} style={{ background: '#fbc02d', color: '#000', border: 'none', borderRadius: '12px', padding: '0 16px', fontWeight: 'bold', cursor: 'pointer', height: '44px' }}>➤</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '16px', background: '#f5f5f5', minHeight: '100vh' }}>
+      <button onClick={() => setAdminScreen('dashboard')} style={{ background: 'none', border: 'none', color: '#1976d2', fontWeight: 'bold', marginBottom: '16px', cursor: 'pointer' }}>← В меню модератора</button>
+      <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>🎧 Обращения в поддержку</h3>
+      <div className=\"ticket-list\">
+        {adminTickets.map((ticket) => (
+          <div key={ticket.id} className="ticket-card" onClick={() => { setChatMessages([]); setActiveChat(ticket.id); }} style={{ background: '#fff', border: '1px solid #eee', marginBottom: '12px', borderRadius: '12px', padding: '16px', cursor: 'pointer' }}>
+            <h4 style={{ margin: '0 0 6px 0', fontSize: '15px' }}>{ticket.topic}</h4>
+            <p style={{ margin: 0, fontSize: '12px', color: '#888' }}>От пользователя: {ticket.authorId}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
