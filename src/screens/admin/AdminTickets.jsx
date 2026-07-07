@@ -1,11 +1,10 @@
 import React from 'react';
 
-export function AdminTickets({ 
-  adminTickets, activeChat, setActiveChat, chatMessages, setChatMessages, 
-  newMessageText, setNewMessageText, loadMessages, sendMessageWithPhoto, 
-  setAdminScreen, handlePhotoSelect, adminSelectedPhoto, currentUser 
+export function AdminTickets({
+  adminTickets, activeChat, setActiveChat, chatMessages, setChatMessages,
+  newMessageText, setNewMessageText, loadMessages, sendMessageWithPhoto,
+  setAdminScreen, handlePhotoSelect, adminSelectedPhoto, currentUser
 }) {
-
   const activeTicket = adminTickets.find(t => t.id === activeChat);
 
   if (activeChat) {
@@ -31,13 +30,36 @@ export function AdminTickets({
           )}
 
           {/* Переписка */}
-          {Array.isArray(chatMessages) && chatMessages.map(msg => {
+          {Array.isArray(chatMessages) && chatMessages.map((msg, index) => {
             const isMe = currentUser && msg.authorId === currentUser.id;
+            
+            // ⚡ ЛОГИКА ОТОБРАЖЕНИЯ ДАТЫ
+            const msgDate = new Date(msg.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+            let showDate = false;
+            
+            if (index === 0) {
+              showDate = true;
+            } else {
+              const prevMsgDate = new Date(chatMessages[index - 1].createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+              if (msgDate !== prevMsgDate) showDate = true;
+            }
+
+            const timeStr = new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
             return (
-              <div key={msg.id} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', background: isMe ? '#e3f2fd' : '#fff', padding: '10px 14px', borderRadius: '16px', borderBottomRightRadius: isMe ? '4px' : '16px', borderBottomLeftRadius: isMe ? '16px' : '4px', maxWidth: '80%', marginBottom: '10px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
-                {msg.photo && <img src={`${msg.photo}`} alt="" style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '6px' }} />}
-                <p style={{ margin: 0, fontSize: '14px' }}>{msg.text}</p>
-              </div>
+              <React.Fragment key={msg.id}>
+                {showDate && (
+                  <div style={{ textAlign: 'center', margin: '16px 0', fontSize: '11px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    <span style={{ background: '#e0e0e0', padding: '4px 10px', borderRadius: '12px' }}>{msgDate}</span>
+                  </div>
+                )}
+                
+                <div style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', background: isMe ? '#e3f2fd' : '#fff', padding: '10px 14px', borderRadius: '16px', borderBottomRightRadius: isMe ? '4px' : '16px', borderBottomLeftRadius: isMe ? '16px' : '4px', maxWidth: '80%', marginBottom: '10px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+                  {msg.photo && <img src={`${msg.photo}`} alt="" style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '6px' }} />}
+                  {msg.text && <p style={{ margin: 0, fontSize: '14px', wordBreak: 'break-word' }}>{msg.text}</p>}
+                  <span style={{ display: 'block', textAlign: 'right', fontSize: '10px', color: '#999', marginTop: '4px' }}>{timeStr}</span>
+                </div>
+              </React.Fragment>
             );
           })}
         </div>
@@ -64,7 +86,7 @@ export function AdminTickets({
     <div style={{ padding: '16px', background: '#f5f5f5', minHeight: '100vh' }}>
       <button onClick={() => setAdminScreen('dashboard')} style={{ background: 'none', border: 'none', color: '#1976d2', fontWeight: 'bold', marginBottom: '16px', cursor: 'pointer' }}>← В меню модератора</button>
       <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>🎧 Обращения в поддержку</h3>
-      <div className=\"ticket-list\">
+      <div className="ticket-list">
         {adminTickets.map((ticket) => (
           <div key={ticket.id} className="ticket-card" onClick={() => { setChatMessages([]); setActiveChat(ticket.id); }} style={{ background: '#fff', border: '1px solid #eee', marginBottom: '12px', borderRadius: '12px', padding: '16px', cursor: 'pointer' }}>
             <h4 style={{ margin: '0 0 6px 0', fontSize: '15px' }}>{ticket.topic}</h4>
