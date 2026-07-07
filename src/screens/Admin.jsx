@@ -9,7 +9,7 @@ import { AdminUsers } from './admin/AdminUsers';
 
 function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) {
   const [adminScreen, setAdminScreen] = useState('dashboard');
-  
+
   // Состояния для дашборда, настроек и списков
   const [adminStats, setAdminStats] = useState(null);
   const [globalBanner, setGlobalBanner] = useState({
@@ -19,7 +19,7 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
   const [adminActiveTab, setAdminActiveTab] = useState('check'); // check | active | archive
   const [adminReviewsList, setAdminReviewsList] = useState([]);
   const [adminReviewsTab, setAdminReviewsTab] = useState('MODERATION');
-  
+
   // Состояния для техподдержки
   const [adminTickets, setAdminTickets] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
@@ -27,7 +27,8 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
   const [newMessageText, setNewMessageText] = useState('');
   const [adminSelectedPhoto, setAdminSelectedPhoto] = useState(null);
   
-  const [adminModal, setAdminModal] = useState(null); // { type: 'lotDetail'|'reviewDetail'|'ban', data: ... }
+  const [adminModal, setAdminModal] = useState(null);
+  // ⚡ НОВЫЕ СТЕЙТЫ ДЛЯ КРАСИВОГО ОТКЛОНЕНИЯ
   const [isRejectMode, setIsRejectMode] = useState(false);
   const [rejectReasonText, setRejectReasonText] = useState('');
 
@@ -121,6 +122,7 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
         setIsRejectMode(false);
         setRejectReasonText('');
         setAdminLotsList(prev => prev.map(l => l.id === lotId ? { ...l, status, rejectReason: reason } : l));
+        setAlertData({ message: status === 'ACTIVE' ? '✅ Лот одобрен' : '❌ Лот отклонен' });
       })
       .catch(err => console.error(err));
   };
@@ -135,6 +137,7 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
       .then(() => {
         setAdminModal(null);
         setAdminReviewsList(prev => prev.map(r => r.id === revId ? { ...r, status, rejectReason: reason } : r));
+        setAlertData({ message: status === 'ACTIVE' ? '✅ Отзыв одобрен' : '❌ Отзыв отклонен' });
       })
       .catch(err => console.error(err));
   };
@@ -169,8 +172,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
                       onClick={() => {
                         if (!rejectReasonText.trim()) return alert('Пожалуйста, введите причину отклонения!');
                         handleUpdateLotStatus(data.id, 'REJECTED', rejectReasonText);
-                        setIsRejectMode(false);
-                        setRejectReasonText('');
                       }} 
                       style={{ flex: 1, height: '40px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
                     >
