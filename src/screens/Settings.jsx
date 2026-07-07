@@ -2,24 +2,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import { API_URL } from '../config';
 
 function Settings({ setCurrentScreen, currentUser, setAlertData }) {
-  // Тумблеры уведомлений
   const [notifyNewLots, setNotifyNewLots] = useState(true);
   const [notifyBids, setNotifyBids] = useState(true);
   const [notifyEnding, setNotifyEnding] = useState(true);
 
-  // Локальные стейты для предпросмотра изменений профиля
   const [newName, setNewName] = useState(currentUser?.customName || currentUser?.username || '');
   const [newAvatar, setNewAvatar] = useState(currentUser?.avatarUrl || null);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // ⚡ Анимация загрузки фото и синхронизация статуса модерации
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [localProfileStatus, setLocalProfileStatus] = useState(currentUser?.profileStatus || 'APPROVED');
 
   const fileInputRef = useRef(null);
 
-  // Синхронизируем стейт, если currentUser прилетит обновленным из App.jsx
   useEffect(() => {
     if (currentUser) {
       setLocalProfileStatus(currentUser.profileStatus || 'APPROVED');
@@ -31,33 +27,54 @@ function Settings({ setCurrentScreen, currentUser, setAlertData }) {
   const isModeration = localProfileStatus === 'MODERATION';
   const isRejected = localProfileStatus === 'REJECTED';
 
-  // Обработка выбора картинки (с анимацией как в чатах)
+  // ⚡ ВСТРОЕННЫЙ КОМПРЕССОР ИЗОБРАЖЕНИЙ (Убирает тормоза и ошибки отправки)
+  const compressImage = (file, callback) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 400; // Идеальный размер для аватарки
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height && width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        // Сжимаем в легкий JPEG
+        callback(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setIsImageLoading(true); // Включаем анимацию загрузки
-      
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setNewAvatar(ev.target.result); // Показываем картинку юзеру
-        setHasChanges(true);            // Включаем кнопку отправки
-        setIsImageLoading(false);       // Выключаем анимацию
-      };
-      reader.onerror = () => {
+      setIsImageLoading(true);
+      compressImage(file, (compressedDataUrl) => {
+        setNewAvatar(compressedDataUrl);
+        setHasChanges(true);
         setIsImageLoading(false);
-        if (setAlertData) setAlertData({ message: '❌ Ошибка при чтении файла', onClose: () => {} });
-      };
-      reader.readAsDataURL(file);
+      });
     }
   };
 
-  // Обработка ввода имени
   const handleNameChange = (e) => {
     setNewName(e.target.value);
-    setHasChanges(true); // Включаем кнопку отправки
+    setHasChanges(true);
   };
 
-  // Финальная отправка данных на сервер
   const handleSaveProfile = () => {
     setIsSubmitting(true);
     fetch(`${API_URL}/api/users/${currentUser.id}/profile`, {
@@ -69,11 +86,9 @@ function Settings({ setCurrentScreen, currentUser, setAlertData }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Ошибка сохранения');
       
-      // Мгновенно переключаем статус интерфейса на «На проверке»
       setLocalProfileStatus('MODERATION');
-      
       if (setAlertData) {
-        setAlertData({ message: '⏳ Данные успешно отправлены на модерацию!', onClose: () => {} });
+        setAlertData({ message: '✅ Данные успешно отправлены на модерацию!', onClose: () => {} });
       }
       setHasChanges(false);
       setIsSubmitting(false);
@@ -96,20 +111,20 @@ function Settings({ setCurrentScreen, currentUser, setAlertData }) {
       {/* 👤 БЛОК ПРОФИЛЯ */}
       <div style={{ background: '#fff', margin: '16px', borderRadius: '16px', padding: '24px 16px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         
-        {/* Аватарка с лоадером */}
+        {/* Аватарка */}
         <div style={{ position: 'relative', marginBottom: '20px', width: '90px', height: '90px' }}>
           {isImageLoading ? (
-            // 🔄 Красивый CSS-лоадер крутилка
             <div style={{ width: '90px', height: '90px', borderRadius: '50%', border: '3px solid #f3f3f3', borderTop: '3px solid #1976d2', animation: 'spin 1s linear infinite', boxSizing: 'border-box' }} />
           ) : newAvatar ? (
-            <img src={newAvatar} alt="avatar" style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #1976d2' }} />
+            <img src={newAvatar} alt="avatar" style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #1976d2', opacity: isModeration ? 0.7 : 1 }} />
           ) : (
-            <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px' }}>👤</div>
+            <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', opacity: isModeration ? 0.7 : 1 }}>👤</div>
           )}
           
           <input type="file" accept="image/*" ref={fileInputRef} onChange={handleAvatarChange} style={{ display: 'none' }} />
           
-          {!isImageLoading && (
+          {/* Карандаш скрыт во время модерации */}
+          {!isImageLoading && !isModeration && (
             <button 
               onClick={() => fileInputRef.current.click()} 
               style={{ position: 'absolute', bottom: '0px', right: '0px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '15px', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', zIndex: 10 }}
@@ -119,32 +134,40 @@ function Settings({ setCurrentScreen, currentUser, setAlertData }) {
           )}
         </div>
 
-        {/* Имя пользователя */}
+        {/* Имя пользователя (Блокируется во время модерации) */}
         <div style={{ width: '100%', maxWidth: '240px', position: 'relative' }}>
           <input 
             type="text" 
             value={newName} 
             onChange={handleNameChange}
             placeholder="Ваш никнейм"
-            style={{ width: '100%', height: '44px', border: '1px solid #ddd', borderRadius: '12px', padding: '0 36px 0 16px', outline: 'none', fontSize: '16px', textAlign: 'center', boxSizing: 'border-box', fontWeight: 'bold', color: '#111' }}
+            disabled={isModeration}
+            style={{ width: '100%', height: '44px', border: '1px solid #ddd', borderRadius: '12px', padding: isModeration ? '0 16px' : '0 36px 0 16px', outline: 'none', fontSize: '16px', textAlign: 'center', boxSizing: 'border-box', fontWeight: 'bold', color: isModeration ? '#666' : '#111', background: isModeration ? '#f5f5f5' : '#fff' }}
           />
-          <span style={{ position: 'absolute', right: '12px', top: '12px', fontSize: '14px', color: '#999', pointerEvents: 'none' }}>✏️</span>
+          {!isModeration && (
+            <span style={{ position: 'absolute', right: '12px', top: '12px', fontSize: '14px', color: '#999', pointerEvents: 'none' }}>✏️</span>
+          )}
         </div>
 
-        {/* Статус модерации (Берется из локального стейта для мгновенного обновления) */}
+        {/* ⚡ БЛОКИРОВКА И ИНФОРМАЦИЯ О МОДЕРАЦИИ */}
         {isModeration && !hasChanges && (
-          <div style={{ fontSize: '13px', color: '#f57c00', fontWeight: 'bold', marginTop: '16px', background: '#fff3e0', padding: '8px 16px', borderRadius: '8px', textAlign: 'center', width: '100%', maxWidth: '240px', boxSizing: 'border-box' }}>
-            ⏳ Профиль на модерации
+          <div style={{ marginTop: '16px', background: '#fff3e0', border: '1px solid #ffe0b2', padding: '12px', borderRadius: '12px', textAlign: 'center', width: '100%', boxSizing: 'border-box' }}>
+            <div style={{ fontSize: '16px', marginBottom: '4px' }}>⏳</div>
+            <div style={{ fontSize: '13px', color: '#e65100', fontWeight: 'bold', marginBottom: '4px' }}>Профиль отправлен на модерацию</div>
+            <div style={{ fontSize: '11px', color: '#f57c00' }}>До вынесения решения вносить изменения, делать ставки и выставлять лоты — нельзя.</div>
           </div>
         )}
+        
         {isRejected && !hasChanges && (
-          <div style={{ fontSize: '13px', color: '#c62828', fontWeight: 'bold', marginTop: '16px', background: '#ffebee', padding: '8px 16px', borderRadius: '8px', textAlign: 'center', width: '100%', maxWidth: '240px', boxSizing: 'border-box' }}>
-            🚫 Отклонено: {currentUser?.profileRejectReason || 'Нарушение правил'}
+          <div style={{ marginTop: '16px', background: '#ffebee', border: '1px solid #ffcdd2', padding: '12px', borderRadius: '12px', textAlign: 'center', width: '100%', boxSizing: 'border-box' }}>
+            <div style={{ fontSize: '13px', color: '#c62828', fontWeight: 'bold', marginBottom: '4px' }}>🚫 Профиль отклонен</div>
+            <div style={{ fontSize: '11px', color: '#d32f2f' }}>Причина: {currentUser?.profileRejectReason || 'Нарушение правил'}</div>
+            <div style={{ fontSize: '11px', color: '#d32f2f', marginTop: '4px' }}>Вы можете загрузить новые данные и отправить повторно.</div>
           </div>
         )}
 
-        {/* Кнопка отправки изменений */}
-        {hasChanges && (
+        {/* Кнопка отправки */}
+        {hasChanges && !isModeration && (
           <button 
             onClick={handleSaveProfile}
             disabled={isSubmitting}
@@ -155,7 +178,6 @@ function Settings({ setCurrentScreen, currentUser, setAlertData }) {
         )}
       </div>
 
-      {/* ⚙️ БЛОК УВЕДОМЛЕНИЙ */}
       <div className="settings-list" style={{ marginTop: '20px' }}>
         <div className="setting-card">
           <p className="setting-title">Уведомления об отправке на модерацию / публикации</p>
@@ -180,12 +202,8 @@ function Settings({ setCurrentScreen, currentUser, setAlertData }) {
         </div>
       </div>
 
-      {/* Встраиваем стиль для бесконечной анимации крутилки-лоадера */}
       <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
