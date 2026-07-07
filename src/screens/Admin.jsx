@@ -6,28 +6,29 @@ import { AdminLots } from './admin/AdminLots';
 import { AdminReviews } from './admin/AdminReviews';
 import { AdminTickets } from './admin/AdminTickets';
 import { AdminUsers } from './admin/AdminUsers';
+import { AdminProfiles } from './admin/AdminProfiles';
 
 function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) {
   const [adminScreen, setAdminScreen] = useState('dashboard');
-
+  
   // Состояния для дашборда, настроек и списков
   const [adminStats, setAdminStats] = useState(null);
-  const [globalBanner, setGlobalBanner] = useState({
-    isBannerOn: false, bannerText: '', bannerLink: '', isChannelOn: true, isGroupOn: true
+  const [globalBanner, setGlobalBanner] = useState({ 
+    isBannerOn: false, bannerText: '', bannerLink: '', isChannelOn: true, isGroupOn: true 
   });
   const [adminLotsList, setAdminLotsList] = useState([]);
   const [adminActiveTab, setAdminActiveTab] = useState('check'); // check | active | archive
   const [adminReviewsList, setAdminReviewsList] = useState([]);
   const [adminReviewsTab, setAdminReviewsTab] = useState('MODERATION');
-
+  
   // Состояния для техподдержки
   const [adminTickets, setAdminTickets] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessageText, setNewMessageText] = useState('');
   const [adminSelectedPhoto, setAdminSelectedPhoto] = useState(null);
-  
   const [adminModal, setAdminModal] = useState(null);
+  
   // ⚡ НОВЫЕ СТЕЙТЫ ДЛЯ КРАСИВОГО ОТКЛОНЕНИЯ
   const [isRejectMode, setIsRejectMode] = useState(false);
   const [rejectReasonText, setRejectReasonText] = useState('');
@@ -265,6 +266,12 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
       )}
       {adminScreen === 'users' && (
         <AdminUsers 
+          setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} 
+        />
+      )}
+      {/* ⚡ НОВЫЙ ЭКРАН: Модерация профилей пользователей */}
+      {adminScreen === 'profiles' && (
+        <AdminProfiles 
           setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} 
         />
       )}
