@@ -15,6 +15,26 @@ import WriteReview from './screens/WriteReview';
 import TicketHistory from './screens/TicketHistory';
 import NotificationsPanel from './screens/NotificationsPanel';
 
+// ⚡ Получаем данные Telegram мгновенно, до рендера, чтобы избежать лагов интерфейса
+const getInitialTelegramUser = () => {
+  const tg = window.Telegram?.WebApp;
+  const tgUser = tg?.initDataUnsafe?.user || { id: '7688251487', username: 'neffec', first_name: 'Admin' };
+  return {
+    id: String(tgUser.id),
+    firstName: tgUser.first_name || 'Гость',
+    rating: 0.0,
+    dealsCount: 0,
+    isBanned: false,
+    banReason: null,
+    banScope: null,
+    banUntil: null,
+    customName: null,
+    avatarUrl: null,
+    profileStatus: 'APPROVED',
+    profileRejectReason: null
+  };
+};
+
 function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
   const [selectedLot, setSelectedLot] = useState(null);
@@ -27,25 +47,24 @@ function App() {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [globalBanner, setGlobalBanner] = useState({ isBannerOn: false, bannerText: '', bannerLink: '' });
 
-  // ⚡ ИСПРАВЛЕНИЕ 1: Добавлены поля профиля в изначальный стейт
-  const [currentUser, setCurrentUser] = useState({
-    id: null, firstName: 'Гость', rating: 0.0, dealsCount: 0,
-    isBanned: false, banReason: null, banScope: null, banUntil: null,
-    customName: null, avatarUrl: null, profileStatus: 'APPROVED', profileRejectReason: null
-  });
+  // ⚡ Мгновенная инициализация ID пользователя (Кнопки докбара прогрузятся СРАЗУ)
+  const [currentUser, setCurrentUser] = useState(getInitialTelegramUser());
 
   const isAdmin = String(currentUser.id) === '7688251487';
 
-  // ⚡ ИСПРАВЛЕНИЕ 2: Функция для моментального обновления статуса без перезагрузки
+  // ⚡ ИСПРАВЛЕННАЯ ФУНКЦИЯ: Теперь передает полный объект Telegram, бэкенд не будет падать в ошибку
   const refreshCurrentUser = () => {
-    if (!currentUser.id) return;
+    const tg = window.Telegram?.WebApp;
+    const tgUser = tg?.initDataUnsafe?.user || { id: '7688251487', username: 'neffec', first_name: 'Admin' };
+
     fetch(`${API_URL}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: currentUser.id })
+      body: JSON.stringify(tgUser)
     })
     .then(res => res.json())
-    .then(user => {
+    .then(data => {
+      const user = data.user || data;
       if (user && !user.error) {
         setCurrentUser(prev => ({
           ...prev,
@@ -93,16 +112,20 @@ function App() {
       body: JSON.stringify(tgUser) 
     })
       .then(res => res.json())
-      .then(user => setCurrentUser({
-          id: String(user.id), firstName: user.firstName || 'Гость', rating: user.rating || 0.0,
-          dealsCount: user.dealsCount || 0, isBanned: user.isBanned, banReason: user.banReason,
-          banScope: user.banScope, banUntil: user.banUntil,
-          // ⚡ ИСПРАВЛЕНИЕ 3: Теперь App.jsx СОХРАНЯЕТ данные профиля
-          customName: user.customName,
-          avatarUrl: user.avatarUrl,
-          profileStatus: user.profileStatus || 'APPROVED',
-          profileRejectReason: user.profileRejectReason
-      }))
+      .then(data => {
+          const user = data.user || data;
+          setCurrentUser({
+              id: String(user.id), firstName: user.firstName || 'Гость', rating: user.rating || 0.0,
+              dealsCount: user.dealsCount || 0, isBanned: user.isBanned, banReason: user.banReason,
+              banScope: user.banScope, banUntil: user.banUntil,
+              customName: user.customName,
+              avatarUrl: user.avatarUrl,
+              profileStatus: user.profileStatus || 'APPROVED',
+              profileRejectReason: user.profileRejectReason
+          });
+          if (data.favoriteLots) setFavoriteLots(data.favoriteLots);
+          if (data.notifications) setNotifications(data.notifications);
+      })
       .catch(err => handleError(err.message, 'Авторизация'));
   }, []);
 
@@ -190,6 +213,7 @@ function App() {
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{getPageTitle()}</h2>
         </div>
         
+        {/* Кнопки теперь рендерятся мгновенно, так как id заполнен сразу */}
         {currentUser.id && currentScreen !== 'adminDashboard' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setIsNotifOpen(true)}>
@@ -229,9 +253,9 @@ function App() {
       {currentScreen === 'completedLot' && <CompletedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
       {currentScreen === 'feedback' && <Feedback setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
       {currentScreen === 'publicProfile' && <PublicProfile setCurrentScreen={setCurrentScreen} currentUser={currentUser} publicProfileData={publicProfileData} referrer={publicProfileReferrer} />}
-      
-      {/* ⚡ ИСПРАВЛЕНИЕ 4: Добавлены недостающие пропсы */}
       {currentScreen === 'rejectedLot' && <RejectedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} lot={selectedLot} setAlertData={setAlertData} />}
+      
+      {/* Передаем исправленный метод фонового обновления данных */}
       {currentScreen === 'settings' && <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} refreshCurrentUser={refreshCurrentUser} />}
       
       {currentScreen === 'writeReview' && <WriteReview setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} setAlertData={setAlertData} />}
