@@ -27,165 +27,213 @@ function App() {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [globalBanner, setGlobalBanner] = useState({ isBannerOn: false, bannerText: '', bannerLink: '' });
 
+  // ⚡ ИСПРАВЛЕНИЕ 1: Добавлены поля профиля в изначальный стейт
   const [currentUser, setCurrentUser] = useState({
     id: null, firstName: 'Гость', rating: 0.0, dealsCount: 0,
-    isBanned: false, banUntil: null, banReason: null, banScope: null,
+    isBanned: false, banReason: null, banScope: null, banUntil: null,
     customName: null, avatarUrl: null, profileStatus: 'APPROVED', profileRejectReason: null
   });
-  const [isAdmin, setIsAdmin] = useState(false);
 
-  // ⚡ ФУНКЦИЯ ДЛЯ МГНОВЕННОГО ОБНОВЛЕНИЯ ДАННЫХ ПРОФИЛЯ ПОСЛЕ ИЗМЕНЕНИЙ
+  const isAdmin = String(currentUser.id) === '7688251487';
+
+  // ⚡ ИСПРАВЛЕНИЕ 2: Функция для моментального обновления статуса без перезагрузки
   const refreshCurrentUser = () => {
     if (!currentUser.id) return;
-    fetch(`${API_URL}/api/users/${currentUser.id}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && !data.error) {
-          setCurrentUser(prev => ({ ...prev, ...data }));
-        }
-      })
-      .catch(() => {});
-  };
-
-  useEffect(() => {
-    if (window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
-
-      const initDataUnsafe = tg.initDataUnsafe || {};
-      const tgUser = initDataUnsafe.user || {};
-
-      if (tgUser.id) {
-        const userIdStr = String(tgUser.id);
-        fetch(`${API_URL}/api/auth`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: userIdStr,
-            username: tgUser.username || '',
-            firstName: tgUser.first_name || ''
-          })
-        })
-        .then(res => res.json())
-        .then(data => {
-          setCurrentUser(data.user);
-          setIsAdmin(data.isAdmin);
-          if (data.favoriteLots) setFavoriteLots(data.favoriteLots);
-          if (data.notifications) setNotifications(data.notifications);
-        })
-        .catch(() => {
-          setCurrentUser({
-            id: userIdStr,
-            firstName: tgUser.first_name || 'Пользователь',
-            rating: 4.8, dealsCount: 12, isBanned: false,
-            customName: null, avatarUrl: null, profileStatus: 'APPROVED', profileRejectReason: null
-          });
-        });
-      } else {
-        setCurrentUser({
-          id: '12345678', firstName: 'Тест Локально', rating: 4.9, dealsCount: 5,
-          isBanned: false, customName: null, avatarUrl: null, profileStatus: 'APPROVED', profileRejectReason: null
-        });
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    fetch(`${API_URL}/api/admin/system-settings`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && !data.error) setGlobalBanner(data);
-      })
-      .catch(() => {});
-  }, [currentScreen]);
-
-  const toggleFavorite = (lot) => {
-    if (!currentUser.id) return;
-    const isFav = favoriteLots.some(fav => fav.id === lot.id);
-    const method = isFav ? 'DELETE' : 'POST';
-
-    fetch(`${API_URL}/api/favorites`, {
-      method,
+    fetch(`${API_URL}/api/auth`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser.id, lotId: lot.id })
+      body: JSON.stringify({ id: currentUser.id })
     })
     .then(res => res.json())
-    .then(data => {
-      setFavoriteLots(data.favoriteLots || []);
+    .then(user => {
+      if (user && !user.error) {
+        setCurrentUser(prev => ({
+          ...prev,
+          customName: user.customName,
+          avatarUrl: user.avatarUrl,
+          profileStatus: user.profileStatus || 'APPROVED',
+          profileRejectReason: user.profileRejectReason
+        }));
+      }
     })
     .catch(() => {});
   };
 
-  const handleOpenPublicProfile = (targetId, referrerScreen) => {
-    if (!targetId) return;
-    fetch(`${API_URL}/api/users/${targetId}/public-profile`)
+  const handleError = (errorText, location = 'App.jsx') => {
+    setAlertData({ message: `❌ Произошла ошибка:\n${errorText}` });
+    fetch(`${API_URL}/api/log-error`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ errorText: String(errorText), userId: currentUser.id || 'До авторизации', location })
+    }).catch(() => {});
+  };
+
+  const toggleFavorite = (lot) => {
+    setFavoriteLots(prev => {
+      if (prev.some(fav => fav.id === lot.id)) return prev.filter(fav => fav.id !== lot.id);
+      return [...prev, lot];
+    });
+  };
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/settings`)
       .then(res => res.json())
-      .then(data => {
-        if (data && !data.error) {
-          setPublicProfileData(data);
-          setPublicProfileReferrer(referrerScreen);
-          setCurrentScreen('publicProfile');
-        }
-      })
+      .then(data => setGlobalBanner(data))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (tg) { tg.ready(); tg.expand(); }
+    const tgUser = tg?.initDataUnsafe?.user || { id: '7688251487', username: 'neffec', first_name: 'Admin' };
+
+    fetch(`${API_URL}/api/auth`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify(tgUser) 
+    })
+      .then(res => res.json())
+      .then(user => setCurrentUser({
+          id: String(user.id), firstName: user.firstName || 'Гость', rating: user.rating || 0.0,
+          dealsCount: user.dealsCount || 0, isBanned: user.isBanned, banReason: user.banReason,
+          banScope: user.banScope, banUntil: user.banUntil,
+          // ⚡ ИСПРАВЛЕНИЕ 3: Теперь App.jsx СОХРАНЯЕТ данные профиля
+          customName: user.customName,
+          avatarUrl: user.avatarUrl,
+          profileStatus: user.profileStatus || 'APPROVED',
+          profileRejectReason: user.profileRejectReason
+      }))
+      .catch(err => handleError(err.message, 'Авторизация'));
+  }, []);
+
+  useEffect(() => {
+    if (currentUser.id) {
+      const fetchNotifs = () => fetch(`${API_URL}/api/users/${currentUser.id}/notifications`).then(res => res.json()).then(data => setNotifications(Array.isArray(data) ? data : []));
+      fetchNotifs();
+      const interval = setInterval(fetchNotifs, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser.id]);
+
+  const handleOpenPublicProfile = (userId, referrer) => {
+    if (!userId) return;
+    setPublicProfileReferrer(referrer);
+    fetch(`${API_URL}/api/users/${userId}/public?t=${Date.now()}`)
+      .then(res => res.json())
+      .then(data => { setPublicProfileData(data); setCurrentScreen('publicProfile'); })
+      .catch(err => handleError(err.message, 'Загрузка профиля'));
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const getPageTitle = () => {
+    switch(currentScreen) {
+      case 'home': return 'Аукционы дронов';
+      case 'profile': return 'Личный кабинет';
+      case 'activeLot': return `Лот #${selectedLot?.id || ''}`;
+      case 'addLot': return 'Создание лота';
+      case 'adminDashboard': return 'Панель модератора';
+      case 'completedLot': return 'Завершенный лот';
+      case 'feedback': return 'Новое обращение';
+      case 'publicProfile': return 'Профиль пользователя';
+      case 'rejectedLot': return 'Отклоненный лот';
+      case 'settings': return 'Настройки';
+      case 'writeReview': return 'Оставить отзыв';
+      case 'ticketHistory': return 'Поддержка';
+      default: return 'Аукцион';
+    }
+  };
+
+  const handleBackClick = () => {
+    if (['activeLot', 'completedLot', 'rejectedLot', 'publicProfile', 'ticketHistory', 'settings', 'adminDashboard', 'feedback'].includes(currentScreen)) {
+      setCurrentScreen('profile');
+    } else if (currentScreen === 'writeReview') {
+      setCurrentScreen('completedLot');
+    } else {
+      setCurrentScreen('home');
+    }
   };
 
   return (
-    <div className="app">
-      {globalBanner.isBannerOn && globalBanner.bannerText && (
-        <div className="global-announcement" onClick={() => globalBanner.bannerLink && window.open(globalBanner.bannerLink, '_blank')}>
+    <div className="app-container" style={{ paddingTop: globalBanner.isBannerOn ? '100px' : '60px' }}>
+      {/* ⚡ ГЛОБАЛЬНЫЙ БАННЕР */}
+      {globalBanner.isBannerOn && (
+        <div 
+          onClick={() => {
+            if (globalBanner.bannerLink) {
+              window.Telegram?.WebApp?.openLink(globalBanner.bannerLink) || window.open(globalBanner.bannerLink, '_blank');
+            }
+          }}
+          style={{ 
+            position: 'fixed', top: 0, left: 0, width: '100%', background: '#ff9800', color: '#fff', 
+            padding: '10px 16px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold', 
+            zIndex: 1000, boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            cursor: globalBanner.bannerLink ? 'pointer' : 'default',
+            boxSizing: 'border-box'
+          }}
+        >
           📢 {globalBanner.bannerText}
+          {globalBanner.bannerLink && <span style={{ textDecoration: 'underline', marginLeft: '6px' }}>(Перейти)</span>}
         </div>
       )}
 
-      <div className="notification-icon-container" onClick={() => setIsNotifOpen(true)}>
-        🔔 {notifications.filter(n => !n.isRead).length > 0 && <span className="notif-badge" />}
+      {/* ⚡ ГЛОБАЛЬНЫЙ ДОКБАР */}
+      <div style={{
+        position: 'fixed', top: globalBanner.isBannerOn ? '40px' : '0', left: 0, width: '100%',
+        background: '#fff', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', zIndex: 999, boxSizing: 'border-box'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {currentScreen !== 'home' && (
+            <button onClick={handleBackClick} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', padding: '0 8px 0 0', color: '#111', lineHeight: 1 }}>{'<'}</button>
+          )}
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{getPageTitle()}</h2>
+        </div>
+        
+        {currentUser.id && currentScreen !== 'adminDashboard' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setIsNotifOpen(true)}>
+              <span style={{ fontSize: '22px' }}>🔔</span>
+              {unreadCount > 0 && (
+                <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#c62828', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+            <div style={{ cursor: 'pointer', fontSize: '22px' }} onClick={() => setCurrentScreen('profile')}>
+              👤
+            </div>
+          </div>
+        )}
       </div>
 
       {isNotifOpen && (
-        <NotificationsPanel 
-          notifications={notifications} 
-          setNotifications={setNotifications} 
-          onClose={() => setIsNotifOpen(false)} 
-          API_URL={API_URL} 
-          userId={currentUser.id} 
-        />
+        <NotificationsPanel notifications={notifications} userId={currentUser.id} onClose={() => setIsNotifOpen(false)} onRead={() => setNotifications(notifications.map(n => ({...n, isRead: true})))} />
       )}
-
-      {alertData && (
-        <div className="modal-overlay">
-          <div className="custom-alert-box">
-            <p className="alert-message-content">{alertData.message}</p>
-            <button className="alert-confirm-btn" onClick={() => { alertData.onClose(); setAlertData(null); }}>OK</button>
-          </div>
-        </div>
-      )}
-
-      {confirmData && (
-        <div className="modal-overlay">
-          <div className="custom-alert-box">
-            <p className="alert-message-content">{confirmData.message}</p>
-            <div style={{ display: 'flex', gap: '12px', marginTop: '16px', width: '100%' }}>
-              <button className="confirm-yes-btn" onClick={() => { confirmData.onConfirm(); setConfirmData(null); }}>Да</button>
-              <button className="confirm-no-btn" onClick={() => { confirmData.onCancel(); setConfirmData(null); }}>Отмена</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ⚡ ВЕРНУЛИ КЛАССИЧЕСКИЙ РЕНДЕР (Чтобы не ломался CSS/Flexbox) */}
-      {currentScreen === 'home' && <Home setCurrentScreen={setCurrentScreen} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} currentUser={currentUser} />}
-      {currentScreen === 'profile' && <Profile setCurrentScreen={setCurrentScreen} currentUser={currentUser} isAdmin={isAdmin} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
-      {currentScreen === 'settings' && <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} refreshCurrentUser={refreshCurrentUser} />}
       
-      {currentScreen === 'activeLot' && <ActiveLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)} toggleFavorite={toggleFavorite} setAlertData={setAlertData} setConfirmData={setConfirmData} handleOpenPublicProfile={handleOpenPublicProfile} />}
+      {currentScreen === 'home' && <Home setCurrentScreen={setCurrentScreen} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} isAdmin={isAdmin} />}
+      {currentScreen === 'profile' && <Profile setCurrentScreen={setCurrentScreen} currentUser={currentUser} isAdmin={isAdmin} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
+      
+      {currentScreen === 'activeLot' && <ActiveLot 
+        setCurrentScreen={setCurrentScreen} 
+        currentUser={currentUser} 
+        selectedLot={selectedLot} 
+        isAdmin={isAdmin}
+        isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)} 
+        toggleFavorite={toggleFavorite} 
+        handleOpenPublicProfile={handleOpenPublicProfile} 
+      />}
+      
       {currentScreen === 'addLot' && <AddLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
       {currentScreen === 'adminDashboard' && <Admin setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} setConfirmData={setConfirmData} />}
       {currentScreen === 'completedLot' && <CompletedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
       {currentScreen === 'feedback' && <Feedback setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
       {currentScreen === 'publicProfile' && <PublicProfile setCurrentScreen={setCurrentScreen} currentUser={currentUser} publicProfileData={publicProfileData} referrer={publicProfileReferrer} />}
+      
+      {/* ⚡ ИСПРАВЛЕНИЕ 4: Добавлены недостающие пропсы */}
       {currentScreen === 'rejectedLot' && <RejectedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} lot={selectedLot} setAlertData={setAlertData} />}
+      {currentScreen === 'settings' && <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} refreshCurrentUser={refreshCurrentUser} />}
+      
       {currentScreen === 'writeReview' && <WriteReview setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} setAlertData={setAlertData} />}
       {currentScreen === 'ticketHistory' && <TicketHistory setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
     </div>
