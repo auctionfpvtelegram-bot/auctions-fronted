@@ -1,10 +1,11 @@
 import React from 'react';
 
-export function AdminTickets({
-  adminTickets, activeChat, setActiveChat, chatMessages, setChatMessages,
-  newMessageText, setNewMessageText, loadMessages, sendMessageWithPhoto,
-  setAdminScreen, handlePhotoSelect, adminSelectedPhoto, currentUser
+export function AdminTickets({ 
+  adminTickets, activeChat, setActiveChat, chatMessages, setChatMessages, 
+  newMessageText, setNewMessageText, loadMessages, sendMessageWithPhoto, 
+  setAdminScreen, handlePhotoSelect, adminSelectedPhoto, currentUser 
 }) {
+
   const activeTicket = adminTickets.find(t => t.id === activeChat);
 
   if (activeChat) {
@@ -21,7 +22,7 @@ export function AdminTickets({
 
         {/* Сообщения */}
         <div className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
-          {/* Суть обращения (наша прошлая фикса) */}
+          {/* Суть обращения */}
           {activeTicket && (
             <div style={{ alignSelf: 'flex-start', background: '#fff8e1', padding: '12px 14px', borderRadius: '16px', borderBottomLeftRadius: '4px', border: '1px solid #ffe0b2', maxWidth: '85%', marginBottom: '12px' }}>
               <span style={{ fontSize: '11px', color: '#f57c00', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>📌 ПЕРВОЕ СООБЩЕНИЕ (СУТЬ):</span>
@@ -29,7 +30,7 @@ export function AdminTickets({
             </div>
           )}
 
-          {/* Переписка */}
+          {/* Переписка с датами */}
           {Array.isArray(chatMessages) && chatMessages.map((msg, index) => {
             const isMe = currentUser && msg.authorId === currentUser.id;
             
@@ -56,7 +57,7 @@ export function AdminTickets({
                 
                 <div style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', background: isMe ? '#e3f2fd' : '#fff', padding: '10px 14px', borderRadius: '16px', borderBottomRightRadius: isMe ? '4px' : '16px', borderBottomLeftRadius: isMe ? '16px' : '4px', maxWidth: '80%', marginBottom: '10px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
                   {msg.photo && <img src={`${msg.photo}`} alt="" style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '6px' }} />}
-                  {msg.text && <p style={{ margin: 0, fontSize: '14px', wordBreak: 'break-word' }}>{msg.text}</p>}
+                  <p style={{ margin: 0, fontSize: '14px', wordBreak: 'break-word' }}>{msg.text}</p>
                   <span style={{ display: 'block', textAlign: 'right', fontSize: '10px', color: '#999', marginTop: '4px' }}>{timeStr}</span>
                 </div>
               </React.Fragment>
