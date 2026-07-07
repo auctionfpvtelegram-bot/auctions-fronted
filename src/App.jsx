@@ -34,7 +34,7 @@ function App() {
   });
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Функция принудительного обновления данных юзера (чтобы сразу видеть "часики" модерации)
+  // ⚡ ФУНКЦИЯ ДЛЯ МГНОВЕННОГО ОБНОВЛЕНИЯ ДАННЫХ ПРОФИЛЯ ПОСЛЕ ИЗМЕНЕНИЙ
   const refreshCurrentUser = () => {
     if (!currentUser.id) return;
     fetch(`${API_URL}/api/users/${currentUser.id}`)
@@ -174,20 +174,11 @@ function App() {
         </div>
       )}
 
-      {/* ⚡ ОПТИМИЗИРОВАННЫЙ ОДНОВРЕМЕННЫЙ РЕНДЕР ГЛАВНЫХ ВКЛАДОК (Без тормозов навигации) */}
-      <div style={{ display: currentScreen === 'home' ? 'block' : 'none' }}>
-        <Home setCurrentScreen={setCurrentScreen} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} currentUser={currentUser} />
-      </div>
-
-      <div style={{ display: currentScreen === 'profile' ? 'block' : 'none' }}>
-        <Profile setCurrentScreen={setCurrentScreen} currentUser={currentUser} isAdmin={isAdmin} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />
-      </div>
-
-      <div style={{ display: currentScreen === 'settings' ? 'block' : 'none' }}>
-        <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} refreshCurrentUser={refreshCurrentUser} />
-      </div>
-
-      {/* Остальные вспомогательные экраны рендерятся по условию */}
+      {/* ⚡ ВЕРНУЛИ КЛАССИЧЕСКИЙ РЕНДЕР (Чтобы не ломался CSS/Flexbox) */}
+      {currentScreen === 'home' && <Home setCurrentScreen={setCurrentScreen} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} currentUser={currentUser} />}
+      {currentScreen === 'profile' && <Profile setCurrentScreen={setCurrentScreen} currentUser={currentUser} isAdmin={isAdmin} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
+      {currentScreen === 'settings' && <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} refreshCurrentUser={refreshCurrentUser} />}
+      
       {currentScreen === 'activeLot' && <ActiveLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)} toggleFavorite={toggleFavorite} setAlertData={setAlertData} setConfirmData={setConfirmData} handleOpenPublicProfile={handleOpenPublicProfile} />}
       {currentScreen === 'addLot' && <AddLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
       {currentScreen === 'adminDashboard' && <Admin setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} setConfirmData={setConfirmData} />}
