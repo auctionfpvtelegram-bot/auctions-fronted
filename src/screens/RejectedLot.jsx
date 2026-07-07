@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import { API_URL } from '../config';
-import { EditLotModal } from './EditLotModal'; // ⚡ Подключаем нашу форму
+import { EditLotModal } from './EditLotModal'; // Подключаем форму редактирования
 
-function RejectedLot({ setCurrentScreen, selectedLot, currentUser, setAlertData }) {
-  // Стейт для управления видимостью формы редактирования
+function RejectedLot({ setCurrentScreen, currentUser, lot, setAlertData }) {
+  // Стейт для открытия модалки редактирования
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
-  // Так как в App.jsx проп называется lot, а в самом файле selectedLot, подстрахуемся:
-  const lotData = selectedLot; 
 
   return (
     <div className="app-container">
@@ -22,10 +19,11 @@ function RejectedLot({ setCurrentScreen, selectedLot, currentUser, setAlertData 
       
       <div className="alert-box">
         <div className="alert-header"><span>⚠️</span> Причина отклонения:</div>
-        <p className="alert-text">{lotData?.rejectReason || 'Нарушение правил размещения. Модератор не одобрил публикацию.'}</p>
+        {/* ⚡ Теперь данные берутся из корректного пропа lot */}
+        <p className="alert-text">{lot?.rejectReason || 'Нарушение правил размещения. Модератор не одобрил публикацию.'}</p>
       </div>
 
-      {/* ⚡ Кнопка вызова формы редактирования */}
+      {/* ⚡ Кнопка редактирования лота */}
       <div style={{ padding: '0 16px', marginTop: '20px' }}>
         <button 
           onClick={() => setIsEditModalOpen(true)} 
@@ -35,19 +33,18 @@ function RejectedLot({ setCurrentScreen, selectedLot, currentUser, setAlertData 
         </button>
       </div>
 
-      {/* ⚡ Сама форма, которая всплывет поверх экрана */}
+      {/* ⚡ Всплывающая форма редактирования лота */}
       <EditLotModal 
-        lot={lotData}
+        lot={lot}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         API_URL={API_URL}
         currentUser={currentUser}
         onUpdateSuccess={(updatedLot) => {
-          // Выводим уведомление и перекидываем пользователя обратно в профиль
           if (setAlertData) {
-            setAlertData({ message: '🔄 Лот исправлен и отправлен на повторную модерацию!', onClose: () => {} });
+            setAlertData({ message: '🔄 Лот успешно исправлен и отправлен на повторную модерацию!', onClose: () => {} });
           }
-          setCurrentScreen('profile'); 
+          setCurrentScreen('profile'); // Возвращаем в профиль
         }}
       />
     </div>
