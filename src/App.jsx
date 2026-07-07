@@ -201,7 +201,15 @@ function App() {
       {currentScreen === 'feedback' && <Feedback setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
       {currentScreen === 'publicProfile' && <PublicProfile setCurrentScreen={setCurrentScreen} currentUser={currentUser} publicProfileData={publicProfileData} referrer={publicProfileReferrer} />}
       {currentScreen === 'rejectedLot' && <RejectedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} lot={selectedLot} />}
-      {currentScreen === 'settings' && <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
+      
+      {/* ⚡ ИСПРАВЛЕНО: Добавлены пропсы API_URL и setAlertData для Settings */}
+      {currentScreen === 'settings' && <Settings 
+        setCurrentScreen={setCurrentScreen} 
+        currentUser={currentUser} 
+        API_URL={API_URL}
+        setAlertData={setAlertData}
+      />}
+      
       {currentScreen === 'writeReview' && <WriteReview setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} setAlertData={setAlertData} />}
       {currentScreen === 'ticketHistory' && <TicketHistory setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
     </div>
