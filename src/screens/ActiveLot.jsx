@@ -12,7 +12,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
   const [alertData, setAlertData] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
 
-  // ⚡ Функция для загрузки аватарок
+  // ⚡ Функция для аватарок (отсеивает пустоты)
   const getAvatarSrc = (url) => {
     if (!url || url === 'null' || url === 'undefined') return null;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
@@ -118,6 +118,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
     });
   };
 
+  // Получаем данные продавца
   const seller = localLot.user || localLot.seller || {};
 
   return (
@@ -179,7 +180,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </div>
       )}
 
-      {/* 🌟 Блок Описания */}
+      {/* ОПИСАНИЕ */}
       <div className="lot-section">
         <h3 className="lot-section-title">Описание</h3>
         <p className="lot-description-text" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
@@ -187,7 +188,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </p>
       </div>
 
-      {/* 🌟 История ставок */}
+      {/* 🌟 ВЫРОВНЕННАЯ ИСТОРИЯ СТАВОК */}
       <div className="lot-section">
         <h3 className="lot-section-title">История ставок ({localLot.bids?.length || 0})</h3>
         <div className="bid-history-list">
@@ -200,24 +201,26 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
                 key={bid.id} 
                 className="bid-item" 
                 style={isWinner 
-                  ? { background: '#f1f8e9', borderRadius: '8px', padding: '12px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } 
-                  : { display: 'flex', justifyContent: 'space-between', padding: '8px 4px', borderBottom: '1px solid #eee', alignItems: 'center' }
+                  ? { background: '#f1f8e9', borderRadius: '8px', padding: '10px 12px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } 
+                  : { display: 'flex', justifyContent: 'space-between', padding: '10px 4px', borderBottom: '1px solid #eee', alignItems: 'center' }
                 }
               >
+                {/* Аватарка и Ник в одной линии по центру */}
                 <div className="bid-user-info" style={{ display: 'flex', alignItems: 'center', gap: '10px' }} onClick={() => handleOpenPublicProfile(bid.userId, 'activeLot')}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.1)', cursor: 'pointer' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: 'none', cursor: 'pointer' }}>
                     {bidUser.avatarUrl && getAvatarSrc(bidUser.avatarUrl) ? <img src={getAvatarSrc(bidUser.avatarUrl)} alt="bidder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
                   </div>
-                  <span className="bid-username" style={{ fontSize: '14px', color: isWinner ? '#2e7d32' : '#333', cursor: 'pointer', fontWeight: isWinner ? 'bold' : 'normal' }}>
+                  <span className="bid-username" style={{ fontSize: '14px', color: isWinner ? '#2e7d32' : '#333', cursor: 'pointer', fontWeight: isWinner ? 'bold' : '600' }}>
                     {bidUser.customName || bidUser.firstName || bidUser.username || 'Аноним'} {isWinner && '🏆'}
                   </span>
                 </div>
+                {/* Сумма ставки справа */}
                 <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                  <span className="bid-amount" style={{ fontWeight: 'bold', fontSize: '15px', color: isWinner ? '#2e7d32' : '#111' }}>
+                  <span className="bid-amount" style={{ fontWeight: '800', fontSize: '15px', color: isWinner ? '#2e7d32' : '#111' }}>
                     {bid.amount.toLocaleString('ru-RU')} ₽
                   </span>
                   {isAdmin && (
-                    <button onClick={() => handleDeleteBid(bid.id)} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px'}}>🗑</button>
+                    <button onClick={() => handleDeleteBid(bid.id)} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', padding: 0}}>🗑</button>
                   )}
                 </div>
               </div>
@@ -226,21 +229,30 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </div>
       </div>
 
-      {/* 🌟 Карточка продавца */}
-      <div className="lot-section seller-block" style={{ marginBottom: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }} onClick={() => handleOpenPublicProfile(localLot.sellerId, 'activeLot')}>
-        <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+      {/* 🌟 ВЫРОВНЕННАЯ В СТРОЧКУ КАРТОЧКА ПРОДАВЦА */}
+      <div className="lot-section seller-block" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', cursor: 'pointer', background: '#fff', padding: '12px 14px', borderRadius: '12px', border: '1px solid #eee' }} onClick={() => handleOpenPublicProfile(localLot.sellerId, 'activeLot')}>
+        
+        {/* 1. Аватарка слева */}
+        <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: 'none' }}>
           {seller.avatarUrl && getAvatarSrc(seller.avatarUrl) ? (
             <img src={getAvatarSrc(seller.avatarUrl)} alt="seller" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : '👤'}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <span className="seller-username" style={{ margin: 0, padding: 0, fontWeight: 'bold', fontSize: '15px' }}>
+        
+        {/* 2. Ник и Рейтинг по центру */}
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
+          <span className="seller-username" style={{ margin: 0, padding: 0, fontWeight: 'bold', fontSize: '15px', color: '#111' }}>
             {seller.customName || seller.firstName || seller.username || 'Аноним'}
           </span>
-          <span style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
-            ⭐ {seller.rating ? seller.rating.toFixed(1) : '0.0'} ({seller.reviewsCount || 0} отзывов)
+          <span style={{ fontSize: '13px', color: '#f57c00', marginTop: '2px', fontWeight: 'bold' }}>
+            ⭐ {seller.rating ? seller.rating.toFixed(1) : '0.0'} <span style={{ color: '#999', fontWeight: 'normal' }}>({seller.reviewsCount || 0} отзывов)</span>
           </span>
         </div>
+
+        {/* 3. Стикер справа */}
+        <span style={{ background: '#e3f2fd', color: '#0d47a1', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+          Продавец
+        </span>
       </div>
 
       {localLot.sellerId === currentUser.id && (
@@ -251,7 +263,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
       
       <div style={{height: '80px'}}></div>
 
-      {/* 🌟 Нижняя панель ставки (Оригинальные классы) */}
+      {/* НИЖНЯЯ ПАНЕЛЬ СТАВКИ */}
       <div className="bottom-bid-bar">
         <div className="bottom-bid-info">
           <div className="bottom-bid-price-block">
