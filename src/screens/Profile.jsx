@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { API_URL } from '../config'; 
+import { API_URL } from '../config';
 
-function Profile({ 
-  setCurrentScreen = () => {}, 
-  currentUser = {}, 
-  isAdmin = false, 
-  setSelectedLot = () => {}, 
-  favoriteLots = [], 
-  toggleFavorite = () => {}, 
-  handleOpenPublicProfile = () => {} 
+function Profile({
+  setCurrentScreen = () => {},
+  currentUser = {},
+  isAdmin = false,
+  setSelectedLot = () => {},
+  favoriteLots = [],
+  toggleFavorite = () => {},
+  handleOpenPublicProfile = () => {}
 }) {
   const [activeProfileTab, setActiveProfileTab] = useState('lots');
   const [myLots, setMyLots] = useState([]);
@@ -17,7 +17,6 @@ function Profile({
 
   useEffect(() => {
     if (!currentUser || !currentUser.id || currentUser.id === 'Загрузка...') return;
-
     setIsLoading(true);
     fetch(`${API_URL}/api/users/${currentUser.id}/profile?t=${Date.now()}`)
       .then(res => res.json())
@@ -48,6 +47,13 @@ function Profile({
 
   const isBanActive = currentUser.isBanned && currentUser.banUntil && new Date(currentUser.banUntil) > new Date();
 
+  // ⚡ Вспомогательная функция для умного отображения аватарки
+  const getAvatarSrc = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    return `${API_URL}/api/image/${url}`;
+  };
+
   return (
     <>
       {isBanActive && (
@@ -58,12 +64,36 @@ function Profile({
           <p style={{ margin: '4px 0', fontSize: '14px', color: '#111' }}><strong>Снятие ограничений:</strong> {new Date(currentUser.banUntil).toLocaleDateString('ru-RU')}</p>
         </div>
       )}
-      
-      <div className="profile-user-card" style={{ cursor: 'pointer', marginTop: isBanActive ? '0' : '16px' }} onClick={() => handleOpenPublicProfile(currentUser.id, 'profile')}>
-        <div className="profile-info">
-          <h3 className="profile-name">{currentUser.firstName || 'Гость'} (ID: {currentUser.id || '...'})</h3>
-          <div className="profile-rating" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginTop: '6px' }}>
-            <span>⭐️ {currentUser.rating > 0 ? currentUser.rating.toFixed(1) : '0.0'} рейтинг</span>
+
+      {/* ⚡ ОБНОВЛЕННАЯ КАРТОЧКА ПРОФИЛЯ С АВАТАРКОЙ И ID */}
+      <div className="profile-user-card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: '#fff', borderRadius: '12px', margin: '16px 0', cursor: 'pointer' }} onClick={() => handleOpenPublicProfile(currentUser.id, 'profile')}>
+        {/* Аватарка */}
+        {currentUser?.avatarUrl ? (
+          <img 
+            src={getAvatarSrc(currentUser.avatarUrl)} 
+            alt="avatar" 
+            style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #1976d2' }} 
+          />
+        ) : (
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👤</div>
+        )}
+
+        {/* Текстовая информация */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>
+            {currentUser?.customName || currentUser?.firstName || 'Пользователь'}
+          </h3>
+          <span style={{ fontSize: '13px', color: '#666' }}>
+            @{currentUser?.username || 'нет_юзернейма'}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* СТРОГО СОХРАНЯЕМ ID */}
+            <span style={{ fontSize: '11px', color: '#999', background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px', width: 'fit-content' }}>
+              ID: {currentUser?.id}
+            </span>
+            <span style={{ fontSize: '12px', color: '#ff9800' }}>
+              ⭐️ {currentUser?.rating > 0 ? currentUser.rating.toFixed(1) : '0.0'}
+            </span>
           </div>
         </div>
       </div>
@@ -112,15 +142,12 @@ function Profile({
                 myBids.forEach(bid => {
                   if (!seenLots.has(bid.lotId)) { uniqueBids.push(bid); seenLots.add(bid.lotId); }
                 });
-
                 const filteredBids = uniqueBids.filter(bid => {
                   if (bid.lot.status === 'REJECTED') return false;
                   if (bid.lot.status === 'COMPLETED') return bid.lot.bids?.[0]?.userId === currentUser.id;
                   return true; 
                 });
-
                 if (filteredBids.length === 0) return <p style={{ textAlign: 'center', color: '#888', marginTop: '20px' }}>Вы еще не делали ставок</p>;
-
                 return filteredBids.map((bid) => {
                   const isWinner = bid.lot.status === 'COMPLETED' && bid.lot.bids?.[0]?.userId === currentUser.id;
                   const isLeading = bid.lot.status === 'ACTIVE' && bid.amount >= bid.lot.currentPrice;

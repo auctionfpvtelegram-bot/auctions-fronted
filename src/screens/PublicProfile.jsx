@@ -1,4 +1,5 @@
 import React from 'react';
+import { API_URL } from '../config';
 
 function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileReferrer, currentUser, setAlertData }) {
   if (!publicProfileData) {
@@ -18,6 +19,14 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
         year: 'numeric'
       })
     : '—';
+
+  // ⚡ УМНАЯ ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ АВАТАРОК
+  // Понимает и обычные ссылки (http/data), и file_id из Telegram
+  const getAvatarSrc = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    return `${API_URL}/api/image/${url}`;
+  };
 
   // Обработчик кнопки Telegram с динамической ссылкой
   const handleTelegramClick = () => {
@@ -41,29 +50,47 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
 
   return (
     <div className="app-container" style={{ background: '#f5f5f5', minHeight: '100vh', paddingBottom: '20px' }}>
-      
       {/* Шапка */}
       <div style={{ background: '#fff', borderBottom: '1px solid #eee', padding: '16px', margin: '-16px -16px 16px -16px', display: 'flex', alignItems: 'center' }}>
         <button onClick={() => setCurrentScreen(publicProfileReferrer)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', paddingRight: '16px', color: '#111' }}>{'<'}</button>
-        <h2 style={{ margin: 0, fontSize: '18px', color: '#111' }}></h2>
+        <h2 style={{ margin: 0, fontSize: '18px', color: '#111' }}>Профиль пользователя</h2>
       </div>
 
-      {/* Блок с Аватаром, ID и Рейтингом */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '20px' }}>
-        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', marginBottom: '12px' }}>
-          👤
-        </div>
-        <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '0 0 8px 0', color: '#111' }}>
-          ID: {publicProfileData.id}
+      {/* ⚡ НОВАЯ КАРТОЧКА ПРОФИЛЯ С АВАТАРКОЙ, ИМЕНЕМ И ID */}
+      <div className="public-profile-card" style={{ textAlign: 'center', padding: '24px 16px', background: '#fff', borderRadius: '16px', margin: '16px' }}>
+        {/* Аватарка чужого профиля */}
+        {publicProfileData?.avatarUrl ? (
+          <img 
+            src={getAvatarSrc(publicProfileData.avatarUrl)} 
+            alt="avatar" 
+            style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #1976d2', marginBottom: '12px' }} 
+          />
+        ) : (
+          <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', margin: '0 auto 12px auto' }}>👤</div>
+        )}
+
+        {/* Имя и тег чужого профиля */}
+        <h2 style={{ margin: '0 0 4px 0', fontSize: '20px', fontWeight: 'bold' }}>
+          {publicProfileData?.customName || publicProfileData?.firstName || 'Пользователь'}
         </h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px' }}>
+        <p style={{ margin: '0 0 8px 0', color: '#666', fontSize: '14px' }}>
+          @{publicProfileData?.username || 'hidden'}
+        </p>
+
+        {/* ОБЯЗАТЕЛЬНЫЙ ID ПРОФИЛЯ */}
+        <span style={{ fontSize: '12px', color: '#888', background: '#eee', padding: '4px 8px', borderRadius: '6px' }}>
+          ID: {publicProfileData?.id}
+        </span>
+
+        {/* Рейтинг */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', marginTop: '12px', justifyContent: 'center' }}>
           <span style={{ color: '#ffcc00', letterSpacing: '2px' }}>{starString}</span>
           <span style={{ fontWeight: 'bold', color: '#111' }}>{ratingValue > 0 ? ratingValue.toFixed(1) : '0.0'}</span>
         </div>
       </div>
 
       {/* Карточка статистики */}
-      <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #eee', margin: '24px 0' }}>
+      <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #eee', margin: '0 16px 24px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#666', fontSize: '14px' }}>
             <span>📅</span>
@@ -71,16 +98,13 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
           </div>
           <div style={{ color: '#111', fontWeight: '600', fontSize: '14px' }}>{formattedRegDate}</div>
         </div>
-        
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#666', fontSize: '14px' }}>
             <span style={{ color: '#4caf50' }}>✅</span>
             <span>Успешных сделок</span>
           </div>
-          {/* ⚡ ИСПРАВЛЕНО: Теперь запрашиваем dealsCount */}
           <div style={{ color: '#111', fontWeight: '600', fontSize: '14px' }}>{publicProfileData.dealsCount ?? 0}</div>
         </div>
-        
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#666', fontSize: '14px' }}>
             <span>🔨</span>
@@ -91,17 +115,18 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
       </div>
 
       {/* Нативная кнопка Telegram */}
-      <button 
-        onClick={handleTelegramClick} 
-        style={{ background: '#3390ec', borderRadius: '10px', padding: '14px', color: '#fff', fontWeight: 'bold', width: '100%', border: 'none', cursor: 'pointer', fontSize: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
-      >
-        💬 Написать в Telegram
-      </button>
+      <div style={{ padding: '0 16px' }}>
+        <button 
+          onClick={handleTelegramClick} 
+          style={{ background: '#3390ec', borderRadius: '10px', padding: '14px', color: '#fff', fontWeight: 'bold', width: '100%', border: 'none', cursor: 'pointer', fontSize: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
+        >
+          💬 Написать в Telegram
+        </button>
+      </div>
 
       {/* Блок отзывов */}
-      <div style={{ marginTop: '32px' }}>
+      <div style={{ marginTop: '32px', padding: '0 16px' }}>
         <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#111' }}>Отзывы ({reviewCount})</h3>
-        
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {reviewCount > 0 ? (
             publicProfileData.reviews.map((rev) => {
