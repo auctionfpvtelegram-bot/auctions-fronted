@@ -12,7 +12,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
   const [alertData, setAlertData] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
 
-  // ⚡ Функция для аватарок (отсеивает пустоты)
+  // ⚡ Функция для аватарок
   const getAvatarSrc = (url) => {
     if (!url || url === 'null' || url === 'undefined') return null;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
@@ -47,8 +47,8 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
     const h = Math.floor(diff / (1000 * 60 * 60));
     const m = Math.floor((diff / (1000 * 60)) % 60);
     const s = Math.floor((diff / 1000) % 60);
-    if (h > 0) return `${h}ч ${m}м`;
-    return `${m}м ${s}с`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m ${s}s`;
   };
 
   const handlePlaceBid = () => {
@@ -118,7 +118,6 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
     });
   };
 
-  // Получаем данные продавца
   const seller = localLot.user || localLot.seller || {};
 
   return (
@@ -130,7 +129,6 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </div>
       </div>
 
-      {/* Слайдер фотографий (ОРИГИНАЛ) */}
       <div className="lot-image-large" style={{ position: 'relative', background: '#f0f0f0', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', fontSize: '60px', overflow: 'hidden' }}>
         {localLot.photos && localLot.photos.length > 0 ? (
           <>
@@ -161,7 +159,6 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         ) : '🚁'}
       </div>
 
-      {/* ОРИГИНАЛЬНАЯ СТРУКТУРА БЕЗ ЛИШНИХ PADDING'ОВ */}
       <div style={{ marginTop: '12px', marginBottom: '8px' }}>
         {localLot.category && <span className="tag-category" style={{marginRight: '8px'}}>{localLot.category}</span>}
         <span className="lot-id-text">Лот #{localLot.id}</span>
@@ -182,7 +179,6 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </div>
       )}
 
-      {/* ОПИСАНИЕ (ОРИГИНАЛ) */}
       <div className="lot-section">
         <h3 className="lot-section-title">Описание</h3>
         <p className="lot-description-text" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
@@ -190,14 +186,13 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </p>
       </div>
 
-      {/* ИСТОРИЯ СТАВОК (ОРИГИНАЛ + АВАТАРКИ) */}
       <div className="lot-section">
         <h3 className="lot-section-title">История ставок ({localLot.bids?.length || 0})</h3>
         <div className="bid-history-list">
           {localLot.bids?.map((bid, index) => {
             const isWinner = index === 0;
             const bidUser = bid.user || {};
-            
+
             return (
               <div 
                 key={bid.id} 
@@ -208,8 +203,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
                 }
               >
                 <div className="bid-user-info" style={{ display: 'flex', alignItems: 'center', gap: '10px' }} onClick={() => handleOpenPublicProfile(bid.userId, 'activeLot')}>
-                  {/* Аватарка участника */}
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.1)', cursor: 'pointer' }}>
                     {bidUser.avatarUrl && getAvatarSrc(bidUser.avatarUrl) ? <img src={getAvatarSrc(bidUser.avatarUrl)} alt="bidder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
                   </div>
                   <span className="bid-username" style={{ fontSize: '14px', color: isWinner ? '#2e7d32' : '#333', cursor: 'pointer', fontWeight: isWinner ? 'bold' : 'normal' }}>
@@ -230,9 +224,8 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </div>
       </div>
 
-      {/* КАРТОЧКА ПРОДАВЦА (ОРИГИНАЛЬНЫЙ КЛАСС + АВАТАР И РЕЙТИНГ) */}
       <div className="lot-section seller-block" style={{ marginBottom: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }} onClick={() => handleOpenPublicProfile(localLot.sellerId, 'activeLot')}>
-        <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           {seller.avatarUrl && getAvatarSrc(seller.avatarUrl) ? (
             <img src={getAvatarSrc(seller.avatarUrl)} alt="seller" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : '👤'}
@@ -255,7 +248,6 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
       
       <div style={{height: '80px'}}></div>
 
-      {/* НИЖНЯЯ ПАНЕЛЬ СТАВКИ (ПОЛНОСТЬЮ ОРИГИНАЛЬНАЯ ИЗ ТВОЕГО ФАЙЛА) */}
       <div className="bottom-bid-bar">
         <div className="bottom-bid-info">
           <div className="bottom-bid-price-block">
@@ -265,11 +257,12 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </div>
         <div className="bottom-bid-actions">
           <input type="text" className="bid-input" value={bidAmount} onChange={(e) => setBidAmount(e.target.value.replace(/\D/g, ''))} />
-          <button className="bid-btn" onClick={() => setUserActionModal('bid')}>Ставка</button>
+          {/* ⚡ Желтая кнопка "Ставка" */}
+          <button className="bid-btn" style={{ background: '#ffcc00', color: '#000', border: 'none' }} onClick={() => setUserActionModal('bid')}>Ставка</button>
         </div>
       </div>
 
-      {/* МОДАЛКИ (ОРИГИНАЛ) */}
+      {/* МОДАЛКИ */}
       {userActionModal === 'bid' && (
         <div className="modal-overlay" onClick={() => setUserActionModal(null)} style={{ zIndex: 9999 }}>
           <div className="modal-content" style={{ textAlign: 'center', padding: '24px' }} onClick={(e) => e.stopPropagation()}>
