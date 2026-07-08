@@ -6,16 +6,15 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
   const [bidAmount, setBidAmount] = useState('');
   const [now, setNow] = useState(Date.now());
   
-  // Стейт для текущей фотографии в слайдере
   const [photoIndex, setPhotoIndex] = useState(0);
   
   const [userActionModal, setUserActionModal] = useState(null);
   const [alertData, setAlertData] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
 
-  // ⚡ Умная функция для аватарок
+  // ⚡ Усиленная функция для аватарок (отсеивает null-строки)
   const getAvatarSrc = (url) => {
-    if (!url) return null;
+    if (!url || url === 'null' || url === 'undefined') return null;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
     return `${API_URL}/api/image/${url}`;
   };
@@ -119,7 +118,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
     });
   };
 
-  // Получаем данные продавца (бэкенд может присылать их в user или seller)
+  // Получаем данные продавца
   const seller = localLot.user || localLot.seller || {};
 
   return (
@@ -131,7 +130,6 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </div>
       </div>
 
-      {/* 📸 СЛАЙДЕР ФОТОГРАФИЙ (РАБОТАЕТ КАК РАНЬШЕ) */}
       <div className="lot-image-large" style={{ position: 'relative', background: '#f0f0f0', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', fontSize: '60px', overflow: 'hidden' }}>
         {localLot.photos && localLot.photos.length > 0 ? (
           <>
@@ -145,14 +143,12 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
                 >
                   ❮
                 </button>
-                
                 <button 
                   onClick={(e) => { e.stopPropagation(); setPhotoIndex(prev => prev < localLot.photos.length - 1 ? prev + 1 : 0); }}
                   style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}
                 >
                   ❯
                 </button>
-                
                 <div style={{ position: 'absolute', bottom: '12px', display: 'flex', gap: '6px', zIndex: 2 }}>
                   {localLot.photos.map((_, idx) => (
                     <div key={idx} style={{ width: '8px', height: '8px', borderRadius: '50%', background: idx === photoIndex ? '#fff' : 'rgba(255,255,255,0.5)' }} />
@@ -185,13 +181,13 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
           </div>
         )}
 
-        {/* 🌟 КАРТОЧКА ПРОДАВЦА */}
+        {/* 🌟 ОБНОВЛЕННАЯ КАРТОЧКА ПРОДАВЦА */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px', background: '#fff', borderRadius: '16px', border: '1px solid #eef2f5', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', marginBottom: '16px' }}>
           <div 
             onClick={() => handleOpenPublicProfile(localLot.sellerId, 'activeLot')}
-            style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '2px solid #1976d2', flexShrink: 0, cursor: 'pointer' }}
+            style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: 'none', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', flexShrink: 0, cursor: 'pointer' }}
           >
-            {seller.avatarUrl ? (
+            {seller.avatarUrl && getAvatarSrc(seller.avatarUrl) ? (
               <img src={getAvatarSrc(seller.avatarUrl)} alt="seller" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : '👤'}
           </div>
@@ -209,10 +205,11 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
               onClick={() => handleOpenPublicProfile(localLot.sellerId, 'activeLot')}
               style={{ fontWeight: '700', fontSize: '16px', color: '#111', cursor: 'pointer' }}
             >
-              {seller.customName || seller.firstName || 'Пользователь'}
+              {seller.customName || seller.firstName || seller.username || 'Аноним'}
             </div>
+            {/* Рейтинг теперь 0.0 по умолчанию */}
             <div style={{ fontSize: '12px', color: '#f57c00', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              ⭐ {seller.rating ? seller.rating.toFixed(1) : '5.0'} <span style={{ color: '#78909c', fontWeight: 'normal' }}>({seller.reviewsCount || 0} отзывов)</span>
+              ⭐ {seller.rating ? seller.rating.toFixed(1) : '0.0'} <span style={{ color: '#78909c', fontWeight: 'normal' }}>({seller.reviewsCount || 0} отзывов)</span>
             </div>
           </div>
         </div>
@@ -246,20 +243,18 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
                   >
                     <div 
                       onClick={() => handleOpenPublicProfile(bid.userId, 'activeLot')}
-                      style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: '1px solid #ddd', cursor: 'pointer' }} 
+                      style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'pointer' }} 
                     >
-                      {bidUser.avatarUrl ? <img src={getAvatarSrc(bidUser.avatarUrl)} alt="bidder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
+                      {bidUser.avatarUrl && getAvatarSrc(bidUser.avatarUrl) ? <img src={getAvatarSrc(bidUser.avatarUrl)} alt="bidder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
                     </div>
 
                     <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span style={{ fontWeight: '700', fontSize: '14px', color: isWinner ? '#2e7d32' : '#333' }}>
-                            {bidUser.customName || bidUser.firstName || 'Аноним'} {isWinner && '🏆'}
+                            {bidUser.customName || bidUser.firstName || bidUser.username || 'Аноним'} {isWinner && '🏆'}
                           </span>
-                          <span style={{ background: '#eceff1', color: '#455a64', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontFamily: 'monospace', fontWeight: '700' }}>
-                            ID: {bid.userId}
-                          </span>
+                          {/* ID участника удален */}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -287,22 +282,28 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         <div style={{height: '100px'}}></div>
       </div>
 
-      {/* ПАНЕЛЬ СТАВКИ */}
+      {/* 🌟 ОБНОВЛЕННАЯ ПАНЕЛЬ СТАВКИ */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #eee', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', zIndex: 100 }}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '12px', color: '#666', marginBottom: '2px' }}>Текущая цена</span>
-          <span style={{ fontSize: '18px', fontWeight: '900', color: '#111' }}>{localLot.currentPrice?.toLocaleString('ru-RU')} ₽</span>
+        {/* Левый блок с ценой */}
+        <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', marginRight: '12px', minWidth: '0' }}>
+          <span style={{ fontSize: '12px', color: '#666', marginBottom: '2px', whiteSpace: 'nowrap' }}>Текущая ставка</span>
+          <span style={{ fontSize: '18px', fontWeight: '900', color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {localLot.currentPrice?.toLocaleString('ru-RU')} ₽
+          </span>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flex: 1, marginLeft: '16px' }}>
+        
+        {/* Правый блок с полем и кнопкой */}
+        <div style={{ display: 'flex', gap: '8px', flex: '0 0 auto', alignItems: 'center' }}>
           <input 
             type="text" 
             value={bidAmount} 
             onChange={(e) => setBidAmount(e.target.value.replace(/\D/g, ''))} 
-            style={{ flex: 1, height: '44px', border: '1px solid #ddd', borderRadius: '12px', padding: '0 12px', fontSize: '15px', outline: 'none', background: '#f9f9f9', fontWeight: 'bold' }}
+            style={{ width: '90px', height: '44px', border: '1px solid #ddd', borderRadius: '12px', padding: '0 10px', fontSize: '15px', outline: 'none', background: '#f9f9f9', fontWeight: 'bold', textAlign: 'center' }}
+            placeholder="+10%"
           />
           <button 
             onClick={() => setUserActionModal('bid')}
-            style={{ height: '44px', padding: '0 20px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(25,118,210,0.3)' }}
+            style={{ height: '44px', padding: '0 20px', background: '#ffcc00', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(255, 204, 0, 0.3)' }}
           >
             Ставка
           </button>
@@ -319,7 +320,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
                 {parseFloat(bidAmount || 0).toLocaleString('ru-RU')} ₽
               </div>
             </div>
-            <button style={{ background: '#000', color: '#fff', padding: '16px', borderRadius: '12px', width: '100%', marginTop: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }} onClick={handlePlaceBid}>Подтвердить</button>
+            <button style={{ background: '#ffcc00', color: '#000', padding: '16px', borderRadius: '12px', width: '100%', marginTop: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }} onClick={handlePlaceBid}>Подтвердить</button>
           </div>
         </div>
       )}
