@@ -12,7 +12,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
   const [alertData, setAlertData] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
 
-  // ⚡ Функция для аватарок
+  // ⚡ Усиленная функция для аватарок (отсеивает null-строки)
   const getAvatarSrc = (url) => {
     if (!url || url === 'null' || url === 'undefined') return null;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
@@ -47,8 +47,8 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
     const h = Math.floor(diff / (1000 * 60 * 60));
     const m = Math.floor((diff / (1000 * 60)) % 60);
     const s = Math.floor((diff / 1000) % 60);
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m ${s}s`;
+    if (h > 0) return `${h}ч ${m}м`;
+    return `${m}м ${s}с`;
   };
 
   const handlePlaceBid = () => {
@@ -118,6 +118,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
     });
   };
 
+  // Получаем данные продавца
   const seller = localLot.user || localLot.seller || {};
 
   return (
@@ -159,95 +160,125 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         ) : '🚁'}
       </div>
 
-      <div style={{ marginTop: '12px', marginBottom: '8px' }}>
-        {localLot.category && <span className="tag-category" style={{marginRight: '8px'}}>{localLot.category}</span>}
-        <span className="lot-id-text">Лот #{localLot.id}</span>
-        <span className="tag-timer" style={{marginLeft: '8px', background: '#ffebee', color: '#c62828', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold'}}>
-          ⏱ {formatTimeLeft(localLot.endTime)}
-        </span>
-      </div>
-
-      <h1 className="lot-page-title">{localLot.title}</h1>
-      <p className="lot-page-location">📍 {localLot.location}</p>
-
-      {localLot.buyNowPrice && (
-        <div className="instant-buy-box" style={{ background: '#fff8e1', border: '1px solid #ffcc00', padding: '12px', borderRadius: '12px', marginBottom: '16px' }}>
-          <span style={{ fontSize: '12px', color: '#f57f17', display: 'block', marginBottom: '4px' }}>⚡️ Мгновенный выкуп</span>
-          <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#f57f17' }}>
-            {localLot.buyNowPrice.toLocaleString('ru-RU')} ₽
+      <div style={{ padding: '0 16px' }}>
+        <div style={{ marginTop: '16px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {localLot.category && <span style={{ background: '#f0f2f5', color: '#555', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>{localLot.category}</span>}
+          <span style={{ fontSize: '12px', color: '#999' }}>Лот #{localLot.id}</span>
+          <span style={{ marginLeft: 'auto', background: '#ffebee', color: '#c62828', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
+            ⏱ {formatTimeLeft(localLot.endTime)}
           </span>
         </div>
-      )}
 
-      <div className="lot-section">
-        <h3 className="lot-section-title">Описание</h3>
-        <p className="lot-description-text" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-          {localLot.description}
-        </p>
-      </div>
+        <h1 style={{ fontSize: '20px', fontWeight: '800', margin: '8px 0', lineHeight: '1.3' }}>{localLot.title}</h1>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>📍 {localLot.location}</p>
 
-      <div className="lot-section">
-        <h3 className="lot-section-title">История ставок ({localLot.bids?.length || 0})</h3>
-        <div className="bid-history-list">
-          {localLot.bids?.map((bid, index) => {
-            const isWinner = index === 0;
-            const bidUser = bid.user || {};
+        {localLot.buyNowPrice && (
+          <div style={{ background: '#fff8e1', border: '1px solid #ffcc00', padding: '14px', borderRadius: '12px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '14px', color: '#f57f17', fontWeight: 'bold' }}>⚡️ Мгновенный выкуп</span>
+            <span style={{ fontSize: '18px', fontWeight: '900', color: '#f57f17' }}>
+              {localLot.buyNowPrice.toLocaleString('ru-RU')} ₽
+            </span>
+          </div>
+        )}
 
-            return (
-              <div 
-                key={bid.id} 
-                className="bid-item" 
-                style={isWinner 
-                  ? { background: '#f1f8e9', borderRadius: '8px', padding: '12px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } 
-                  : { display: 'flex', justifyContent: 'space-between', padding: '8px 4px', borderBottom: '1px solid #eee', alignItems: 'center' }
-                }
-              >
-                <div className="bid-user-info" style={{ display: 'flex', alignItems: 'center', gap: '10px' }} onClick={() => handleOpenPublicProfile(bid.userId, 'activeLot')}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.1)', cursor: 'pointer' }}>
-                    {bidUser.avatarUrl && getAvatarSrc(bidUser.avatarUrl) ? <img src={getAvatarSrc(bidUser.avatarUrl)} alt="bidder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
+        {/* 🌟 КАРТОЧКА ПРОДАВЦА (Вернули оригинальную ширину) */}
+        <div className="lot-section seller-block" style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px', cursor: 'pointer' }} onClick={() => handleOpenPublicProfile(localLot.sellerId, 'activeLot')}>
+          <div 
+            style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: 'none', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', flexShrink: 0 }}
+          >
+            {seller.avatarUrl && getAvatarSrc(seller.avatarUrl) ? (
+              <img src={getAvatarSrc(seller.avatarUrl)} alt="seller" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : '👤'}
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span style={{ background: '#e3f2fd', color: '#0d47a1', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                🏷️ Продавец
+              </span>
+              <span style={{ fontSize: '11px', color: '#455a64', background: '#cfd8dc', padding: '2px 7px', borderRadius: '6px', fontFamily: 'monospace', fontWeight: '700' }}>
+                ID: {localLot.sellerId}
+              </span>
+            </div>
+            <div style={{ fontWeight: '700', fontSize: '16px', color: '#111' }}>
+              {seller.customName || seller.firstName || seller.username || 'Аноним'}
+            </div>
+            <div style={{ fontSize: '12px', color: '#f57c00', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              ⭐ {seller.rating ? seller.rating.toFixed(1) : '0.0'} <span style={{ color: '#78909c', fontWeight: 'normal' }}>({seller.reviewsCount || 0} отзывов)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 🌟 БЛОК ОПИСАНИЯ (Вернули оригинальную ширину) */}
+        <div className="lot-section" style={{ marginBottom: '24px' }}>
+          <h3 className="lot-section-title" style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>Описание</h3>
+          <p className="lot-description-text" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#444', lineHeight: '1.5', fontSize: '14px' }}>
+            {localLot.description}
+          </p>
+        </div>
+
+        {/* 🌟 ИСТОРИЯ СТАВОК (Вернули оригинальную ширину) */}
+        <div className="lot-section" style={{ marginBottom: '24px' }}>
+          <h3 className="lot-section-title" style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
+            <span>История ставок</span>
+            <span style={{ background: '#f0f2f5', color: '#666', padding: '2px 8px', borderRadius: '10px', fontSize: '12px' }}>{localLot.bids?.length || 0}</span>
+          </h3>
+          
+          <div className="bid-history-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {!localLot.bids || localLot.bids.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '14px', background: '#f9f9f9', borderRadius: '12px' }}>Ставок пока нет</div>
+            ) : (
+              localLot.bids.map((bid, index) => {
+                const isWinner = index === 0;
+                const bidUser = bid.user || {};
+                
+                return (
+                  <div 
+                    key={bid.id} 
+                    className="bid-item"
+                    style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '12px', background: isWinner ? '#f1f8e9' : '#fff', border: isWinner ? '1px solid #c8e6c9' : '1px solid #eee' }}
+                  >
+                    <div 
+                      onClick={() => handleOpenPublicProfile(bid.userId, 'activeLot')}
+                      style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'pointer' }} 
+                    >
+                      {bidUser.avatarUrl && getAvatarSrc(bidUser.avatarUrl) ? <img src={getAvatarSrc(bidUser.avatarUrl)} alt="bidder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
+                    </div>
+
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontWeight: '700', fontSize: '14px', color: isWinner ? '#2e7d32' : '#333' }}>
+                            {bidUser.customName || bidUser.firstName || bidUser.username || 'Аноним'} {isWinner && '🏆'}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontWeight: '800', fontSize: '15px', color: isWinner ? '#2e7d32' : '#111' }}>
+                          {bid.amount.toLocaleString('ru-RU')} ₽
+                        </span>
+                        {isAdmin && (
+                          <button onClick={() => handleDeleteBid(bid.id)} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px'}}>🗑</button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <span className="bid-username" style={{ fontSize: '14px', color: isWinner ? '#2e7d32' : '#333', cursor: 'pointer', fontWeight: isWinner ? 'bold' : 'normal' }}>
-                    {bidUser.customName || bidUser.firstName || bidUser.username || 'Аноним'} {isWinner && '🏆'}
-                  </span>
-                </div>
-                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                  <span className="bid-amount" style={{ fontWeight: 'bold', fontSize: '15px', color: isWinner ? '#2e7d32' : '#111' }}>
-                    {bid.amount.toLocaleString('ru-RU')} ₽
-                  </span>
-                  {isAdmin && (
-                    <button onClick={() => handleDeleteBid(bid.id)} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px'}}>🗑</button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                );
+              })
+            )}
+          </div>
         </div>
+
+        {localLot.sellerId === currentUser.id && (
+          <button style={{ background: '#ffebee', color: '#c62828', width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #ffcdd2', fontWeight: 'bold', fontSize: '15px', marginBottom: '80px', cursor: 'pointer' }} onClick={handleEarlyComplete}>
+            🛑 Завершить досрочно
+          </button>
+        )}
+        
+        <div style={{height: '100px'}}></div>
       </div>
 
-      <div className="lot-section seller-block" style={{ marginBottom: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }} onClick={() => handleOpenPublicProfile(localLot.sellerId, 'activeLot')}>
-        <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          {seller.avatarUrl && getAvatarSrc(seller.avatarUrl) ? (
-            <img src={getAvatarSrc(seller.avatarUrl)} alt="seller" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : '👤'}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <span className="seller-username" style={{ margin: 0, padding: 0, fontWeight: 'bold', fontSize: '15px' }}>
-            {seller.customName || seller.firstName || seller.username || 'Аноним'}
-          </span>
-          <span style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
-            ⭐ {seller.rating ? seller.rating.toFixed(1) : '0.0'} ({seller.reviewsCount || 0} отзывов)
-          </span>
-        </div>
-      </div>
-
-      {localLot.sellerId === currentUser.id && (
-        <button className="btn-reject" style={{ width: '100%', padding: '14px', marginBottom: '80px' }} onClick={handleEarlyComplete}>
-          🛑 Завершить досрочно
-        </button>
-      )}
-      
-      <div style={{height: '80px'}}></div>
-
+      {/* 🌟 ОРИГИНАЛЬНАЯ ПАНЕЛЬ СТАВКИ С ЖЕЛТОЙ КНОПКОЙ */}
       <div className="bottom-bid-bar">
         <div className="bottom-bid-info">
           <div className="bottom-bid-price-block">
@@ -256,9 +287,20 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
           </div>
         </div>
         <div className="bottom-bid-actions">
-          <input type="text" className="bid-input" value={bidAmount} onChange={(e) => setBidAmount(e.target.value.replace(/\D/g, ''))} />
-          {/* ⚡ Желтая кнопка "Ставка" */}
-          <button className="bid-btn" style={{ background: '#ffcc00', color: '#000', border: 'none' }} onClick={() => setUserActionModal('bid')}>Ставка</button>
+          <input 
+            type="text" 
+            className="bid-input" 
+            value={bidAmount} 
+            onChange={(e) => setBidAmount(e.target.value.replace(/\D/g, ''))} 
+            placeholder="+10%"
+          />
+          <button 
+            className="bid-btn" 
+            onClick={() => setUserActionModal('bid')}
+            style={{ background: '#ffcc00', color: '#000', border: 'none', boxShadow: '0 4px 10px rgba(255, 204, 0, 0.3)' }}
+          >
+            Ставка
+          </button>
         </div>
       </div>
 
@@ -272,7 +314,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
                 {parseFloat(bidAmount || 0).toLocaleString('ru-RU')} ₽
               </div>
             </div>
-            <button style={{ background: '#000', color: '#fff', padding: '16px', borderRadius: '12px', width: '100%', marginTop: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }} onClick={handlePlaceBid}>Подтвердить</button>
+            <button style={{ background: '#ffcc00', color: '#000', padding: '16px', borderRadius: '12px', width: '100%', marginTop: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }} onClick={handlePlaceBid}>Подтвердить</button>
           </div>
         </div>
       )}
