@@ -1,48 +1,49 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { API_URL } from '../config';
 
-function ActiveLot({ lotId, setCurrentScreen, currentUser, setAlertData }) {
-  const [lot, setLot] = useState(null);
-  const [bids, setBids] = useState([]);
+function ActiveLot({ setCurrentScreen, selectedLot, currentUser, handleOpenPublicProfile, setAlertData }) {
+  // ⚡ Теперь мы сразу берем лот из пропсов, никакой бесконечной загрузки!
+  const [lot, setLot] = useState(selectedLot);
+  const [bids, setBids] = useState(selectedLot?.bids || []);
   const [bidAmount, setBidAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState('');
   
   const scrollRef = useRef(null);
 
-  // Умная функция для получения ссылки на аватарку (через ТГ-переходник)
+  // Умная функция для получения ссылки на аватарку
   const getAvatarSrc = (url) => {
     if (!url) return null;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
     return `${API_URL}/api/image/${url}`;
   };
 
-  // Загрузка данных лота и ставок
+  // Синхронизация с выбранным лотом, если он изменился в App.jsx
   useEffect(() => {
-    if (!lotId) return;
+    if (selectedLot) {
+      setLot(selectedLot);
+      if (selectedLot.bids) setBids(selectedLot.bids);
+    }
+  }, [selectedLot]);
 
-    const fetchData = async () => {
+  // Фоновое обновление ставок (каждые 5 секунд), чтобы видеть ставки других
+  useEffect(() => {
+    if (!lot?.id) return;
+    const fetchBids = async () => {
       try {
-        const lotRes = await fetch(`${API_URL}/api/lots/${lotId}`);
-        const lotJson = await lotRes.json();
-        if (!lotRes.ok) throw new Error(lotJson.error || 'Ошибка загрузки лота');
-        setLot(lotJson);
-
-        const bidsRes = await fetch(`${API_URL}/api/lots/${lotId}/bids`);
-        const bidsJson = await bidsRes.json();
-        if (bidsRes.ok) setBids(bidsJson);
+        const res = await fetch(`${API_URL}/api/lots/${lot.id}/bids`);
+        if (res.ok) {
+          const data = await res.json();
+          setBids(data);
+        }
       } catch (err) {
-        if (setAlertData) setAlertData({ message: `⚠️ ${err.message}`, onClose: () => {} });
-      } finally {
-        setLoading(false);
+        console.error(err);
       }
     };
-
-    fetchData();
-    const interval = setInterval(fetchData, 5000); // Обновление каждые 5 секунд
+    fetchBids();
+    const interval = setInterval(fetchBids, 5000);
     return () => clearInterval(interval);
-  }, [lotId]);
+  }, [lot?.id]);
 
   // Таймер обратного отсчета
   useEffect(() => {
@@ -83,11 +84,12 @@ function ActiveLot({ lotId, setCurrentScreen, currentUser, setAlertData }) {
 
     if (!amount || amount < minBid) {
       if (setAlertData) setAlertData({ message: `⚠️ Минимальная ставка: ${minBid} ₽`, onClose: () => {} });
+      else alert(`Минимальная ставка: ${minBid} ₽`);
       return;
     }
 
     setIsSubmitting(true);
-    fetch(`${API_URL}/api/lots/${lotId}/bids`, {
+    fetch(`${API_URL}/api/lots/${lot.id}/bids`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: currentUser.id, amount })
@@ -96,34 +98,21 @@ function ActiveLot({ lotId, setCurrentScreen, currentUser, setAlertData }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Не удалось сделать ставку');
       setBidAmount('');
-      // Сразу обновляем список локально
+      // Локально обновляем цену и ставки
+      setLot(prev => ({ ...prev, currentPrice: json.amount }));
       setBids(prev => [...prev, json]);
     })
     .catch(err => {
       if (setAlertData) setAlertData({ message: `⚠️ ${err.message}`, onClose: () => {} });
+      else alert(`⚠️ ${err.message}`);
     })
-    .with(() => setIsSubmitting(false));
+    .finally(() => setIsSubmitting(false));
   };
-
-  const handleOpenPublicProfile = (userId) => {
-    // Логика открытия публичного профиля (переключение экрана в App.jsx)
-    if (setCurrentScreen) setCurrentScreen(`public-profile:${userId}`);
-  };
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f4f6f9' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #e0e0e0', borderTop: '3px solid #1976d2', animation: 'spin 1s linear infinite' }} />
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
 
   if (!lot) {
     return (
       <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-        <p>Лот не найден или был удален.</p>
-        <button onClick={() => setCurrentScreen('home')} style={{ background: '#1976d2', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '12px' }}>Назад</button>
+        <p>Загрузка данных лота...</p>
       </div>
     );
   }
@@ -151,7 +140,7 @@ function ActiveLot({ lotId, setCurrentScreen, currentUser, setAlertData }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8f9fa', padding: '14px', borderRadius: '14px' }}>
               <div>
                 <span style={{ fontSize: '11px', color: '#888', display: 'block', marginBottom: '2px' }}>Текущая цена</span>
-                <span style={{ fontSize: '18px', fontWeight: '8px', color: '#111' }}>{lot.currentPrice.toLocaleString()} ₽</span>
+                <span style={{ fontSize: '18px', fontWeight: '800', color: '#111' }}>{lot.currentPrice.toLocaleString()} ₽</span>
               </div>
               <div>
                 <span style={{ fontSize: '11px', color: '#888', display: 'block', marginBottom: '2px' }}>Осталось времени</span>
@@ -161,7 +150,7 @@ function ActiveLot({ lotId, setCurrentScreen, currentUser, setAlertData }) {
           </div>
         </div>
 
-        {/* 🌟 КАРТОЧКА ПРОДАВЦА С РЕЙТИНГОМ И СТИКЕРАМИ */}
+        {/* 🌟 КАРТОЧКА ПРОДАВЦА */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px', background: '#fff', borderRadius: '18px', border: '1px solid #eef2f5', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
           <div 
             onClick={() => handleOpenPublicProfile(lot.userId)}
@@ -174,11 +163,9 @@ function ActiveLot({ lotId, setCurrentScreen, currentUser, setAlertData }) {
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              {/* Стикер "Продавец" */}
               <span style={{ background: '#e3f2fd', color: '#0d47a1', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
                 🏷️ Продавец
               </span>
-              {/* Стикер "ID" */}
               <span style={{ fontSize: '11px', color: '#455a64', background: '#cfd8dc', padding: '2px 7px', borderRadius: '6px', fontFamily: 'monospace', fontWeight: '700' }}>
                 ID: {lot.user?.id}
               </span>
@@ -189,7 +176,6 @@ function ActiveLot({ lotId, setCurrentScreen, currentUser, setAlertData }) {
             >
               {lot.user?.customName || lot.user?.firstName || 'Аноним'}
             </div>
-            {/* РЕЙТИНГ НА ОСНОВЕ ОТЗЫВОВ */}
             <div style={{ fontSize: '12px', color: '#f57c00', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
               ⭐ {lot.user?.rating ? lot.user.rating.toFixed(1) : '5.0'} <span style={{ color: '#78909c', fontWeight: 'normal' }}>({lot.user?.reviewsCount || 0} отзывов)</span>
             </div>
@@ -209,7 +195,7 @@ function ActiveLot({ lotId, setCurrentScreen, currentUser, setAlertData }) {
           </div>
         )}
 
-        {/* ИСТОРИЯ СТАВОК */}
+        {/* 🌟 ИСТОРИЯ СТАВОК */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '20px', padding: '16px', border: '1px solid #eef2f5', boxShadow: '0 4px 16px rgba(0,0,0,0.01)' }}>
           <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '700', color: '#333', display: 'flex', justifyContent: 'space-between' }}>
             <span>📊 История ставок</span>
@@ -237,7 +223,6 @@ function ActiveLot({ lotId, setCurrentScreen, currentUser, setAlertData }) {
                           <span style={{ fontWeight: '700', fontSize: '14px', color: isMyBid ? '#1976d2' : '#212121' }}>
                             {bid.user?.customName || bid.user?.firstName || 'Аноним'} {isMyBid && '🧭'}
                           </span>
-                          {/* Стикер ID для участника */}
                           <span style={{ background: '#eceff1', color: '#455a64', padding: '2px 6px', borderRadius: '5px', fontSize: '10px', fontFamily: 'monospace', fontWeight: '700', border: '1px solid #cfd8dc' }}>
                             ID: {bid.user?.id || bid.userId}
                           </span>
