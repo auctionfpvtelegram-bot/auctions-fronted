@@ -69,13 +69,10 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
           <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', margin: '0 auto 12px auto' }}>👤</div>
         )}
 
-        {/* Имя и тег чужого профиля */}
+        {/* Имя чужого профиля */}
         <h2 style={{ margin: '0 0 4px 0', fontSize: '20px', fontWeight: 'bold' }}>
           {publicProfileData?.customName || publicProfileData?.firstName || 'Пользователь'}
         </h2>
-        <p style={{ margin: '0 0 8px 0', color: '#666', fontSize: '14px' }}>
-          @{publicProfileData?.username || 'hidden'}
-        </p>
 
         {/* ОБЯЗАТЕЛЬНЫЙ ID ПРОФИЛЯ */}
         <span style={{ fontSize: '12px', color: '#888', background: '#eee', padding: '4px 8px', borderRadius: '6px' }}>

@@ -83,9 +83,6 @@ function Profile({
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>
             {currentUser?.customName || currentUser?.firstName || 'Пользователь'}
           </h3>
-          <span style={{ fontSize: '13px', color: '#666' }}>
-            @{currentUser?.username || 'нет_юзернейма'}
-          </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {/* СТРОГО СОХРАНЯЕМ ID */}
             <span style={{ fontSize: '11px', color: '#999', background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px', width: 'fit-content' }}>

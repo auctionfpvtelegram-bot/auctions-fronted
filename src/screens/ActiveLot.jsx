@@ -1,31 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { API_URL } from '../config';
 
-function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavorite, toggleFavorite, handleOpenPublicProfile }) {
+function ActiveLot({ 
+  setCurrentScreen, 
+  selectedLot, 
+  currentUser, 
+  isAdmin, 
+  isFavorite, 
+  toggleFavorite, 
+  handleOpenPublicProfile 
+}) {
   const [localLot, setLocalLot] = useState(selectedLot);
   const [bidAmount, setBidAmount] = useState('');
   const [now, setNow] = useState(Date.now());
-  
-  // Стейт для текущей фотографии в слайдере
   const [photoIndex, setPhotoIndex] = useState(0);
-  
   const [userActionModal, setUserActionModal] = useState(null);
   const [alertData, setAlertData] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
+  const [bids, setBids] = useState([]);
+  const scrollRef = useRef(null);
 
-  // 👇 ТО САМОЕ ИСПРАВЛЕНИЕ, ЧТОБЫ ЛОТ ВСЕГДА НАХОДИЛСЯ 👇
+  // ⚡ Умная функция для получения ссылки на аватарку
+  const getAvatarSrc = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    return `${API_URL}/api/image/${url}`;
+  };
+
+  // Синхронизация с выбранным лотом
   useEffect(() => {
     if (selectedLot) {
       setLocalLot(selectedLot);
+      if (selectedLot.bids) {
+        setBids(selectedLot.bids);
+      }
     }
   }, [selectedLot]);
-  // 👆 ------------------------------------------------ 👆
 
+  // Таймер обратного отсчёта
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // Рекомендуемая ставка
   useEffect(() => {
     if (localLot) {
       const minIncrement = localLot.currentPrice * 0.001;
@@ -62,19 +80,20 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount, userId: currentUser.id })
     })
-    .then(async res => {
-      if (!res.ok) throw new Error((await res.json()).error);
-      return res.json();
-    })
-    .then(updatedLot => {
-      setAlertData({ message: '🎉 Ставка успешно принята!' });
-      setUserActionModal(null);
-      setLocalLot(updatedLot);
-    })
-    .catch(err => {
-      setAlertData({ message: `❌ ${err.message}` });
-      setUserActionModal(null);
-    });
+      .then(async res => {
+        if (!res.ok) throw new Error((await res.json()).error);
+        return res.json();
+      })
+      .then(updatedLot => {
+        setAlertData({ message: '🎉 Ставка успешно принята!' });
+        setUserActionModal(null);
+        setLocalLot(updatedLot);
+        if (updatedLot.bids) setBids(updatedLot.bids);
+      })
+      .catch(err => {
+        setAlertData({ message: `❌ ${err.message}` });
+        setUserActionModal(null);
+      });
   };
 
   const handleEarlyComplete = () => {
@@ -86,13 +105,13 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'COMPLETED' })
         })
-        .then(() => {
-          setAlertData({ 
-            message: '🛑 Лот успешно завершен досрочно!',
-            onClose: () => setCurrentScreen('profile')
-          });
-        })
-        .catch(() => setAlertData({ message: '❌ Ошибка при завершении лота.' }));
+          .then(() => {
+            setAlertData({
+              message: '🛑 Лот успешно завершен досрочно!',
+              onClose: () => setCurrentScreen('profile')
+            });
+          })
+          .catch(() => setAlertData({ message: '❌ Ошибка при завершении лота.' }));
       }
     });
   };
@@ -102,14 +121,11 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
       message: 'Вы уверены, что хотите удалить эту ставку?',
       onConfirm: () => {
         fetch(`${API_URL}/api/bids/${bidId}`, { method: 'DELETE' })
-        .then(() => {
-          setAlertData({ message: 'Ставка успешно удалена.' });
-          setLocalLot(prev => ({
-            ...prev,
-            bids: prev.bids.filter(b => b.id !== bidId)
-          }));
-        })
-        .catch(() => setAlertData({ message: 'Ошибка при удалении ставки.' }));
+          .then(() => {
+            setAlertData({ message: 'Ставка успешно удалена.' });
+            setBids(prev => prev.filter(b => b.id !== bidId));
+          })
+          .catch(() => setAlertData({ message: 'Ошибка при удалении ставки.' }));
       }
     });
   };
@@ -128,26 +144,20 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         {localLot.photos && localLot.photos.length > 0 ? (
           <>
             <img src={localLot.photos[photoIndex]} alt="Lot" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
-            
             {localLot.photos.length > 1 && (
               <>
-                {/* Кнопка Влево */}
                 <button 
                   onClick={(e) => { e.stopPropagation(); setPhotoIndex(prev => prev > 0 ? prev - 1 : localLot.photos.length - 1); }}
                   style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}
                 >
                   ❮
                 </button>
-                
-                {/* Кнопка Вправо */}
                 <button 
                   onClick={(e) => { e.stopPropagation(); setPhotoIndex(prev => prev < localLot.photos.length - 1 ? prev + 1 : 0); }}
                   style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}
                 >
                   ❯
                 </button>
-                
-                {/* Точки-индикаторы снизу */}
                 <div style={{ position: 'absolute', bottom: '12px', display: 'flex', gap: '6px', zIndex: 2 }}>
                   {localLot.photos.map((_, idx) => (
                     <div key={idx} style={{ width: '8px', height: '8px', borderRadius: '50%', background: idx === photoIndex ? '#fff' : 'rgba(255,255,255,0.5)' }} />
@@ -186,46 +196,85 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </p>
       </div>
 
-      <div className="lot-section">
-        <h3 className="lot-section-title">История ставок ({localLot.bids?.length || 0})</h3>
-        <div className="bid-history-list">
-          {localLot.bids?.map((bid, index) => (
-            <div 
-              key={bid.id} 
-              className="bid-item" 
-              style={index === 0 
-                ? { background: '#f1f8e9', borderRadius: '8px', padding: '12px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } 
-                : { display: 'flex', justifyContent: 'space-between', padding: '8px 4px', borderBottom: '1px solid #eee' }
-              }
-            >
-              <div className="bid-user-info" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="bid-username" style={{ fontSize: '14px', color: index === 0 ? '#111' : '#666', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => handleOpenPublicProfile(bid.userId, 'activeLot')}>
-                  ID: {bid.userId} {index === 0 && '🏆'}
-                </span>
-              </div>
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                <span className="bid-amount" style={{ fontWeight: 'bold', fontSize: '15px', color: index === 0 ? '#2e7d32' : '#111' }}>
-                  {bid.amount.toLocaleString('ru-RU')} ₽
-                </span>
-                {isAdmin && (
-                  <button onClick={() => handleDeleteBid(bid.id)} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px'}}>🗑</button>
-                )}
-              </div>
-            </div>
-          ))}
+      {/* ⚡ БЛОК ПРОДАВЦА (ОБНОВЛЁННЫЙ) */}
+      <div className="lot-section seller-block" style={{ marginBottom: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }} onClick={() => handleOpenPublicProfile(localLot.user?.id || localLot.sellerId, 'activeLot')}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', overflow: 'hidden' }}>
+          {localLot.user?.avatarUrl ? <img src={getAvatarSrc(localLot.user.avatarUrl)} alt="seller" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
+        </div>
+        <div>
+          <div style={{ fontWeight: '600', fontSize: '15px' }}>
+            Продавец: {localLot.user?.customName || localLot.user?.firstName || 'Аноним'}
+          </div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            ID: {localLot.user?.id || localLot.sellerId}
+            {localLot.user?.dealsCount > 0 && ` • Успешных сделок: ${localLot.user.dealsCount}`}
+          </div>
         </div>
       </div>
 
-      <div className="lot-section seller-block" style={{ marginBottom: '16px', cursor: 'pointer' }} onClick={() => handleOpenPublicProfile(localLot.sellerId, 'activeLot')}>
-        <p className="seller-username">Продавец ID: {localLot.sellerId}</p>
+      {/* ⚡ БЛОК ПОБЕДИТЕЛЯ (если лот завершён) */}
+      {localLot.status === 'COMPLETED' && localLot.winner && (
+        <div className="lot-section" style={{ background: '#e8f5e9', padding: '16px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {localLot.winner?.avatarUrl ? <img src={getAvatarSrc(localLot.winner.avatarUrl)} alt="winner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
+          </div>
+          <div style={{ fontWeight: '600', fontSize: '14px', color: '#2e7d32' }}>
+            🏆 Победитель: {localLot.winner?.customName || localLot.winner?.firstName || 'Пользователь'}
+          </div>
+        </div>
+      )}
+
+      {/* ⚡ ИСТОРИЯ СТАВОК (ОБНОВЛЁННАЯ) */}
+      <div className="lot-section">
+        <h3 className="lot-section-title">История ставок ({bids?.length || 0})</h3>
+        <div className="bid-history-list" ref={scrollRef}>
+          {bids?.map((bid, index) => {
+            const isMyBid = bid.userId === currentUser.id;
+            return (
+              <div 
+                key={bid.id} 
+                className="bid-item" 
+                style={index === 0 
+                  ? { background: '#f1f8e9', borderRadius: '8px', padding: '12px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' } 
+                  : { display: 'flex', alignItems: 'center', padding: '8px 4px', borderBottom: '1px solid #eee', gap: '10px' }
+                }
+              >
+                <div 
+                  style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }} 
+                  onClick={() => handleOpenPublicProfile(bid.userId)}
+                >
+                  {bid.user?.avatarUrl ? <img src={getAvatarSrc(bid.user.avatarUrl)} alt="bidder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: '600', fontSize: '14px', color: isMyBid ? '#1976d2' : '#333' }}>
+                      {bid.user?.customName || bid.user?.firstName || 'Аноним'} {isMyBid && '(Вы)'}
+                    </span>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                      <span className="bid-amount" style={{ fontWeight: 'bold', fontSize: '15px', color: index === 0 ? '#2e7d32' : '#111' }}>
+                        {bid.amount.toLocaleString('ru-RU')} ₽
+                      </span>
+                      {isAdmin && (
+                        <button onClick={() => handleDeleteBid(bid.id)} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px'}}>🗑</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {(!bids || bids.length === 0) && (
+            <p style={{ textAlign: 'center', color: '#888', padding: '16px' }}>Ставок пока нет. Будьте первым!</p>
+          )}
+        </div>
       </div>
 
-      {localLot.sellerId === currentUser.id && (
+      {localLot.sellerId === currentUser.id && localLot.status === 'ACTIVE' && (
         <button className="btn-reject" style={{ width: '100%', padding: '14px', marginBottom: '80px' }} onClick={handleEarlyComplete}>
           🛑 Завершить досрочно
         </button>
       )}
-      
+
       <div style={{height: '80px'}}></div>
 
       <div className="bottom-bid-bar">
