@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { API_URL } from '../config';
+import { API_URL } from '../config'; // ⚡ КРИТИЧНО ДЛЯ ЗАГРУЗКИ АВАТАРОК!
 
-function ActiveLot({ 
-  setCurrentScreen, 
-  selectedLot, 
-  currentUser, 
-  isAdmin, 
-  isFavorite, 
-  toggleFavorite, 
-  handleOpenPublicProfile 
+function ActiveLot({
+  setCurrentScreen,
+  selectedLot,
+  currentUser,
+  isAdmin,
+  isFavorite,
+  toggleFavorite,
+  handleOpenPublicProfile
 }) {
   const [localLot, setLocalLot] = useState(selectedLot);
   const [bidAmount, setBidAmount] = useState('');
@@ -69,12 +69,10 @@ function ActiveLot({
     const amount = parseInt(bidAmount, 10);
     const minIncrement = localLot.currentPrice * 0.001;
     const minAllowedBid = Math.ceil(localLot.currentPrice + minIncrement);
-    
     if (isNaN(amount) || amount < minAllowedBid) {
       setAlertData({ message: `Минимальная ставка: ${minAllowedBid.toLocaleString('ru-RU')} ₽ (+0.1%)` });
       return;
     }
-
     fetch(`${API_URL}/api/lots/${localLot.id}/bids`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -196,18 +194,32 @@ function ActiveLot({
         </p>
       </div>
 
-      {/* ⚡ БЛОК ПРОДАВЦА (ОБНОВЛЁННЫЙ) */}
-      <div className="lot-section seller-block" style={{ marginBottom: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }} onClick={() => handleOpenPublicProfile(localLot.user?.id || localLot.sellerId, 'activeLot')}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', overflow: 'hidden' }}>
-          {localLot.user?.avatarUrl ? <img src={getAvatarSrc(localLot.user.avatarUrl)} alt="seller" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
+      {/* 🌟 ОБНОВЛЕННЫЙ БЛОК ПРОДАВЦА */}
+      <div 
+        style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px', background: '#f8f9fa', borderRadius: '14px', border: '1px solid #eaeaea', marginBottom: '20px', cursor: 'pointer' }} 
+        onClick={() => handleOpenPublicProfile(localLot.user?.id || localLot.sellerId, 'activeLot')}
+      >
+        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '2px solid #1976d2', flexShrink: 0, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+          {localLot.user?.avatarUrl ? (
+            <img src={getAvatarSrc(localLot.user.avatarUrl)} alt="seller" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : '👤'}
         </div>
-        <div>
-          <div style={{ fontWeight: '600', fontSize: '15px' }}>
-            Продавец: {localLot.user?.customName || localLot.user?.firstName || 'Аноним'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            {/* Стикер "Продавец" */}
+            <span style={{ background: '#e3f2fd', color: '#0d47a1', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+              🏷️ Продавец
+            </span>
+            {/* Стикер ID */}
+            <span style={{ fontSize: '11px', color: '#666', background: '#eeeeee', padding: '2px 6px', borderRadius: '5px', fontFamily: 'monospace', fontWeight: '600' }}>
+              ID: {localLot.user?.id || localLot.sellerId}
+            </span>
           </div>
-          <div style={{ fontSize: '12px', color: '#666' }}>
-            ID: {localLot.user?.id || localLot.sellerId}
-            {localLot.user?.dealsCount > 0 && ` • Успешных сделок: ${localLot.user.dealsCount}`}
+          <div style={{ fontWeight: '700', fontSize: '16px', color: '#111' }}>
+            {localLot.user?.customName || localLot.user?.firstName || 'Аноним'}
+          </div>
+          <div style={{ fontSize: '12px', color: '#2e7d32', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            🤝 Успешных сделок: {localLot.user?.dealsCount || 0}
           </div>
         </div>
       </div>
@@ -215,10 +227,10 @@ function ActiveLot({
       {/* ⚡ БЛОК ПОБЕДИТЕЛЯ (если лот завершён) */}
       {localLot.status === 'COMPLETED' && localLot.winner && (
         <div className="lot-section" style={{ background: '#e8f5e9', padding: '16px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid #c8e6c9' }}>
             {localLot.winner?.avatarUrl ? <img src={getAvatarSrc(localLot.winner.avatarUrl)} alt="winner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
           </div>
-          <div style={{ fontWeight: '600', fontSize: '14px', color: '#2e7d32' }}>
+          <div style={{ fontWeight: '700', fontSize: '14px', color: '#2e7d32' }}>
             🏆 Победитель: {localLot.winner?.customName || localLot.winner?.firstName || 'Пользователь'}
           </div>
         </div>
@@ -235,28 +247,42 @@ function ActiveLot({
                 key={bid.id} 
                 className="bid-item" 
                 style={index === 0 
-                  ? { background: '#f1f8e9', borderRadius: '8px', padding: '12px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' } 
-                  : { display: 'flex', alignItems: 'center', padding: '8px 4px', borderBottom: '1px solid #eee', gap: '10px' }
+                  ? { background: '#f1f8e9', borderRadius: '8px', padding: '12px', marginBottom: '8px' } 
+                  : { padding: '0' }
                 }
               >
-                <div 
-                  style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }} 
-                  onClick={() => handleOpenPublicProfile(bid.userId)}
-                >
-                  {bid.user?.avatarUrl ? <img src={getAvatarSrc(bid.user.avatarUrl)} alt="bidder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: '600', fontSize: '14px', color: isMyBid ? '#1976d2' : '#333' }}>
-                      {bid.user?.customName || bid.user?.firstName || 'Аноним'} {isMyBid && '(Вы)'}
-                    </span>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                      <span className="bid-amount" style={{ fontWeight: 'bold', fontSize: '15px', color: index === 0 ? '#2e7d32' : '#111' }}>
-                        {bid.amount.toLocaleString('ru-RU')} ₽
-                      </span>
-                      {isAdmin && (
-                        <button onClick={() => handleDeleteBid(bid.id)} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px'}}>🗑</button>
-                      )}
+                {/* 🌟 ОБНОВЛЕННЫЙ ЭЛЕМЕНТ СТАВКИ */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: index === 0 ? 'none' : '1px solid #f0f0f0' }}>
+                  {/* Кликабельная аватарка */}
+                  <div 
+                    style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: '1px solid #e0e0e0', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }} 
+                    onClick={() => handleOpenPublicProfile(bid.userId)}
+                  >
+                    {bid.user?.avatarUrl ? (
+                      <img src={getAvatarSrc(bid.user.avatarUrl)} alt="bidder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : '👤'}
+                  </div>
+                  
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                      {/* Ник + Стикер ID */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: '700', fontSize: '14px', color: isMyBid ? '#1976d2' : '#212121' }}>
+                          {bid.user?.customName || bid.user?.firstName || 'Аноним'} {isMyBid && '(Вы)'}
+                        </span>
+                        <span style={{ background: '#f5f5f5', color: '#616161', padding: '2px 6px', borderRadius: '5px', fontSize: '10px', fontFamily: 'monospace', fontWeight: '600', border: '1px solid #e0e0e0' }}>
+                          ID: {bid.user?.id || bid.userId}
+                        </span>
+                      </div>
+
+                      <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                        <span className="bid-amount" style={{ fontWeight: 'bold', fontSize: '15px', color: index === 0 ? '#2e7d32' : '#111' }}>
+                          {bid.amount.toLocaleString('ru-RU')} ₽
+                        </span>
+                        {isAdmin && (
+                          <button onClick={() => handleDeleteBid(bid.id)} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px'}}>🗑</button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
