@@ -32,7 +32,8 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
 
   useEffect(() => {
     if (localLot) {
-      const minIncrement = localLot.currentPrice * 0.001;
+      // ⚡ Изменили расчет рекомендуемой ставки на 1%
+      const minIncrement = localLot.currentPrice * 0.01;
       const recommendedBid = Math.ceil(localLot.currentPrice + minIncrement);
       setBidAmount(recommendedBid.toString());
     }
@@ -53,11 +54,12 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
 
   const handlePlaceBid = () => {
     const amount = parseInt(bidAmount, 10);
-    const minIncrement = localLot.currentPrice * 0.001;
+    // ⚡ Изменили минимальный шаг ставки на 1%
+    const minIncrement = localLot.currentPrice * 0.01;
     const minAllowedBid = Math.ceil(localLot.currentPrice + minIncrement);
     
     if (isNaN(amount) || amount < minAllowedBid) {
-      setAlertData({ message: `Минимальная ставка: ${minAllowedBid.toLocaleString('ru-RU')} ₽ (+0.1%)` });
+      setAlertData({ message: `Минимальная ставка: ${minAllowedBid.toLocaleString('ru-RU')} ₽ (+1%)` });
       return;
     }
 
@@ -123,17 +125,9 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
 
   return (
     <>
-      {/* 📸 СЛАЙДЕР ФОТОГРАФИЙ */}
+      {/* 📸 СЛАЙДЕР ФОТОГРАФИЙ (Кнопка Назад убрана, осталось только Избранное) */}
       <div className="lot-image-large" style={{ position: 'relative', background: '#f0f0f0', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', fontSize: '60px', overflow: 'hidden' }}>
         
-        {/* 🌟 Кнопка НАЗАД (парит поверх фото слева) */}
-        <button 
-          onClick={(e) => { e.stopPropagation(); setCurrentScreen('home'); }}
-          style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, fontSize: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', color: '#333', fontWeight: 'bold' }}
-        >
-          {'\u276E'}
-        </button>
-
         {/* 🌟 Кнопка избранного (парит поверх фото справа) */}
         <button 
           onClick={(e) => { e.stopPropagation(); toggleFavorite(localLot); }}
