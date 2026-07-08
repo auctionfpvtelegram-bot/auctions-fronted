@@ -19,7 +19,6 @@ export function AdminProfiles({ setAdminScreen, API_URL, setAlertData }) {
 
   const handleUpdateStatus = (id, status) => {
     let rejectReason = '';
-    
     // Если отклоняем, запрашиваем причину
     if (status === 'REJECTED') {
       rejectReason = prompt('Укажите причину отклонения никнейма/аватарки:');
@@ -60,21 +59,26 @@ export function AdminProfiles({ setAdminScreen, API_URL, setAlertData }) {
           {profiles.map(p => (
             <div key={p.id} style={{ background: '#fff', padding: '16px', borderRadius: '16px', border: '1px solid #eee', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
               <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '16px' }}>
-                
-                {/* Отображение аватарки */}
+                {/* ⚡ УМНЫЙ ОБРАБОТЧИК АВАТАРКИ */}
                 {p.avatarUrl ? (
-                  <img src={p.avatarUrl} alt="avatar" style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #1976d2' }} />
+                  <img 
+                    src={
+                      p.avatarUrl?.startsWith('http') || p.avatarUrl?.startsWith('data:') 
+                        ? p.avatarUrl 
+                        : `${API_URL}/api/image/${p.avatarUrl}`
+                    } 
+                    alt="avatar" 
+                    style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #1976d2' }} 
+                  />
                 ) : (
                   <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👤</div>
                 )}
-                
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '11px', color: '#888', marginBottom: '2px' }}>ID: {p.id}</div>
                   <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#111' }}>{p.customName || p.username || 'Без имени'}</div>
                   <div style={{ fontSize: '11px', color: '#f57c00', marginTop: '4px', fontWeight: '700', background: '#fff3e0', display: 'inline-block', padding: '4px 8px', borderRadius: '8px' }}>ОЖИДАЕТ ПРОВЕРКИ</div>
                 </div>
               </div>
-
               {/* Кнопки действий */}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => handleUpdateStatus(p.id, 'APPROVED')} style={{ flex: 1, height: '40px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>Одобрить</button>
