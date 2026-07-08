@@ -123,14 +123,18 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
 
   return (
     <>
-      <div className="screen-header" style={{ marginBottom: '16px' }}>
-        <button className="back-btn" onClick={() => setCurrentScreen('home')}>{'<'}</button>
-      </div>
-
       {/* 📸 СЛАЙДЕР ФОТОГРАФИЙ */}
       <div className="lot-image-large" style={{ position: 'relative', background: '#f0f0f0', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', fontSize: '60px', overflow: 'hidden' }}>
         
-        {/* 🌟 Кнопка избранного (перенесена поверх фото) */}
+        {/* 🌟 Кнопка НАЗАД (парит поверх фото слева) */}
+        <button 
+          onClick={(e) => { e.stopPropagation(); setCurrentScreen('home'); }}
+          style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, fontSize: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', color: '#333', fontWeight: 'bold' }}
+        >
+          {'\u276E'}
+        </button>
+
+        {/* 🌟 Кнопка избранного (парит поверх фото справа) */}
         <button 
           onClick={(e) => { e.stopPropagation(); toggleFavorite(localLot); }}
           style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, fontSize: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
@@ -195,7 +199,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </p>
       </div>
 
-      {/* 🌟 КАРТОЧКА ПРОДАВЦА (ПОДНЯТА ВВЕРХ) */}
+      {/* 🌟 КАРТОЧКА ПРОДАВЦА */}
       <div className="lot-section seller-block" style={{ marginBottom: '16px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px' }} onClick={() => handleOpenPublicProfile(localLot.sellerId, 'activeLot')}>
         
         {/* Аватарка с легкой тенью */}
@@ -221,9 +225,8 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         </span>
       </div>
 
-      {/* 🌟 ИСТОРИЯ СТАВОК (ОПУЩЕНА ВНИЗ С НОВЫМ ЗАГОЛОВКОМ) */}
+      {/* 🌟 ИСТОРИЯ СТАВОК */}
       <div className="lot-section">
-        {/* Заголовок истории ставок разделен по бокам */}
         <h3 className="lot-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <span>История ставок</span>
           <span style={{ background: '#f0f2f5', color: '#666', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
