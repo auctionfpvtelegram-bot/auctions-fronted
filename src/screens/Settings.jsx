@@ -1,40 +1,84 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { API_URL } from '../config';
 
 function Settings({ setCurrentScreen, currentUser, setAlertData, refreshCurrentUser }) {
   const [notifyNewLots, setNotifyNewLots] = useState(true);
   const [notifyBids, setNotifyBids] = useState(true);
   const [notifyEnding, setNotifyEnding] = useState(true);
-
-  // Стейт для текста имени и модалки
+  
   const [newName, setNewName] = useState(currentUser?.customName || currentUser?.username || '');
+  const [newAvatar, setNewAvatar] = useState(currentUser?.avatarUrl || null);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [localProfileStatus, setLocalProfileStatus] = useState(currentUser?.profileStatus || 'APPROVED');
   
-  // ⚡ Стейт для всплывающего окна-переходника в ТГ-Бота
   const [showAvatarModal, setShowAvatarModal] = useState(false);
-
-  const isModeration = currentUser?.profileStatus === 'MODERATION';
-  const isRejected = currentUser?.profileStatus === 'REJECTED';
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (currentUser) {
+      setLocalProfileStatus(currentUser.profileStatus || 'APPROVED');
       setNewName(currentUser.customName || currentUser.username || '');
+      setNewAvatar(currentUser.avatarUrl || null);
     }
   }, [currentUser]);
 
-  // Запрос к боту на открытие диалога для загрузки фото
+  const isModeration = localProfileStatus === 'MODERATION';
+  const isRejected = localProfileStatus === 'REJECTED';
+
+  // ⚡ ВСТРОЕННЫЙ КОМПРЕССОР ИЗОБРАЖЕНИЙ (на случай, если понадобится локальная загрузка)
+  const compressImage = (file, callback) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 400;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height && width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        callback(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setIsImageLoading(true);
+      compressImage(file, (compressedDataUrl) => {
+        setNewAvatar(compressedDataUrl);
+        setHasChanges(true);
+        setIsImageLoading(false);
+      });
+    }
+  };
+
+  // ⚡ ФУНКЦИЯ: ОТПРАВЛЯЕТ ЗАПРОС БОТУ И ЗАКРЫВАЕТ WEB APP
   const handleAvatarUploadRequest = () => {
     fetch(`${API_URL}/api/users/${currentUser.id}/request-avatar-upload`, { method: 'POST' })
       .then(() => {
-        // Мгновенно закрываем Web App, чтобы юзер оказался в боте
         if (window.Telegram?.WebApp) {
           window.Telegram.WebApp.close();
         }
       })
-      .catch(() => {
-        if (setAlertData) setAlertData({ message: '❌ Ошибка соединения с ботом', onClose: () => {} });
-      });
+      .catch(() => setAlertData({ message: 'Ошибка соединения с ботом', onClose: () => {} }));
   };
 
   const handleNameChange = (e) => {
@@ -42,43 +86,45 @@ function Settings({ setCurrentScreen, currentUser, setAlertData, refreshCurrentU
     setHasChanges(true);
   };
 
-  // Сохранение ТОЛЬКО имени (фотки теперь идут исключительно через бота)
+  // ⚡ ИСПРАВЛЕНО: Добавлен profileStatus: 'MODERATION' в тело запроса
   const handleSaveProfile = () => {
     setIsSubmitting(true);
     fetch(`${API_URL}/api/users/${currentUser.id}/profile`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customName: newName }) // Отправляем только имя
+      body: JSON.stringify({ 
+        customName: newName,
+        profileStatus: 'MODERATION' // ⚡ Добавили принудительную отправку на модерацию
+      }) 
     })
-    .then(async res => {
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Ошибка сохранения');
-      
-      if (refreshCurrentUser) refreshCurrentUser(); // Фоново обновляем статус
-      if (setAlertData) {
-        setAlertData({ message: '✅ Имя успешно отправлено на модерацию!', onClose: () => {} });
-      }
-      setHasChanges(false);
-      setIsSubmitting(false);
-    })
-    .catch(err => {
-      if (setAlertData) {
-        setAlertData({ message: `⚠️ ${err.message}`, onClose: () => {} });
-      }
-      setIsSubmitting(false);
-    });
+      .then(async res => {
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Ошибка сохранения');
+        
+        setLocalProfileStatus('MODERATION');
+        if (refreshCurrentUser) refreshCurrentUser(); // Фоново обновляем статус
+        if (setAlertData) {
+          setAlertData({ message: '✅ Данные успешно отправлены на модерацию!', onClose: () => {} });
+        }
+        setHasChanges(false);
+        setIsSubmitting(false);
+      })
+      .catch(err => {
+        if (setAlertData) {
+          setAlertData({ message: `⚠️ ${err.message}`, onClose: () => {} });
+        }
+        setIsSubmitting(false);
+      });
   };
 
-  // Умное формирование ссылки на аватарку
-  const getAvatarSrc = () => {
-    if (!currentUser?.avatarUrl) return null;
-    if (currentUser.avatarUrl.startsWith('http') || currentUser.avatarUrl.startsWith('data:')) {
-      return currentUser.avatarUrl;
+  // ⚡ УМНАЯ ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ АВАТАРКИ
+  const getAvatarSrc = (avatarUrl) => {
+    if (!avatarUrl) return null;
+    if (avatarUrl.startsWith('http') || avatarUrl.startsWith('data:')) {
+      return avatarUrl;
     }
-    return `${API_URL}/api/image/${currentUser.avatarUrl}`;
+    return `${API_URL}/api/image/${avatarUrl}`;
   };
-
-  const avatarSrc = getAvatarSrc();
 
   return (
     <div className="app-container">
@@ -87,7 +133,7 @@ function Settings({ setCurrentScreen, currentUser, setAlertData, refreshCurrentU
         <h2 className="screen-title">Настройки</h2>
       </div>
 
-      {/* ⚡ ВСПЛЫВАЮЩЕЕ ОКНО-ПЕРЕХОДНИК */}
+      {/* ⚡ ВСПЛЫВАЮЩЕЕ ОКНО (МОДАЛКА) ДЛЯ ЗАГРУЗКИ ФОТО */}
       {showAvatarModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '16px' }}>
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '320px', textAlign: 'center' }}>
@@ -108,17 +154,22 @@ function Settings({ setCurrentScreen, currentUser, setAlertData, refreshCurrentU
       {/* 👤 БЛОК ПРОФИЛЯ */}
       <div style={{ background: '#fff', margin: '16px', borderRadius: '16px', padding: '24px 16px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         
-        {/* Аватарка */}
+        {/* Аватарка с кнопкой-карандашом */}
         <div style={{ position: 'relative', marginBottom: '20px', width: '90px', height: '90px' }}>
-          {avatarSrc ? (
-            <img src={avatarSrc} alt="avatar" style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #1976d2', opacity: isModeration ? 0.7 : 1 }} />
+          {isImageLoading ? (
+            <div style={{ width: '90px', height: '90px', borderRadius: '50%', border: '3px solid #f3f3f3', borderTop: '3px solid #1976d2', animation: 'spin 1s linear infinite', boxSizing: 'border-box' }} />
+          ) : newAvatar ? (
+            <img 
+              src={getAvatarSrc(newAvatar)} 
+              alt="avatar" 
+              style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #1976d2', opacity: isModeration ? 0.7 : 1 }} 
+            />
           ) : (
             <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', opacity: isModeration ? 0.7 : 1 }}>👤</div>
           )}
           
-          {/* ⚡ ВАЖНО: Никаких input type="file" здесь больше нет! */}
-          
-          {!isModeration && (
+          {/* Карандаш открывает модалку (скрыт во время модерации) */}
+          {!isImageLoading && !isModeration && (
             <button 
               onClick={() => setShowAvatarModal(true)} 
               style={{ position: 'absolute', bottom: '0px', right: '0px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '15px', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', zIndex: 10 }}
@@ -128,7 +179,7 @@ function Settings({ setCurrentScreen, currentUser, setAlertData, refreshCurrentU
           )}
         </div>
 
-        {/* Имя пользователя */}
+        {/* Имя пользователя (Блокируется во время модерации) */}
         <div style={{ width: '100%', maxWidth: '240px', position: 'relative' }}>
           <input 
             type="text" 
@@ -143,6 +194,7 @@ function Settings({ setCurrentScreen, currentUser, setAlertData, refreshCurrentU
           )}
         </div>
 
+        {/* ⚡ БЛОКИРОВКА И ИНФОРМАЦИЯ О МОДЕРАЦИИ */}
         {isModeration && !hasChanges && (
           <div style={{ marginTop: '16px', background: '#fff3e0', border: '1px solid #ffe0b2', padding: '12px', borderRadius: '12px', textAlign: 'center', width: '100%', boxSizing: 'border-box' }}>
             <div style={{ fontSize: '16px', marginBottom: '4px' }}>⏳</div>
@@ -150,14 +202,16 @@ function Settings({ setCurrentScreen, currentUser, setAlertData, refreshCurrentU
             <div style={{ fontSize: '11px', color: '#f57c00' }}>Вносить изменения временно нельзя.</div>
           </div>
         )}
-        
+
         {isRejected && !hasChanges && (
           <div style={{ marginTop: '16px', background: '#ffebee', border: '1px solid #ffcdd2', padding: '12px', borderRadius: '12px', textAlign: 'center', width: '100%', boxSizing: 'border-box' }}>
             <div style={{ fontSize: '13px', color: '#c62828', fontWeight: 'bold', marginBottom: '4px' }}>🚫 Профиль отклонен</div>
             <div style={{ fontSize: '11px', color: '#d32f2f' }}>Причина: {currentUser?.profileRejectReason || 'Нарушение правил'}</div>
+            <div style={{ fontSize: '11px', color: '#d32f2f', marginTop: '4px' }}>Вы можете загрузить новые данные и отправить повторно.</div>
           </div>
         )}
 
+        {/* Кнопка отправки */}
         {hasChanges && !isModeration && (
           <button 
             onClick={handleSaveProfile}
@@ -192,6 +246,10 @@ function Settings({ setCurrentScreen, currentUser, setAlertData, refreshCurrentU
           </label>
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }
