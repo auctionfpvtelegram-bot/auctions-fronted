@@ -181,7 +181,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
           </div>
         )}
 
-        {/* 🌟 ОБНОВЛЕННАЯ КАРТОЧКА ПРОДАВЦА */}
+        {/* 🌟 КАРТОЧКА ПРОДАВЦА */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px', background: '#fff', borderRadius: '16px', border: '1px solid #eef2f5', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', marginBottom: '16px' }}>
           <div 
             onClick={() => handleOpenPublicProfile(localLot.sellerId, 'activeLot')}
@@ -207,7 +207,6 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
             >
               {seller.customName || seller.firstName || seller.username || 'Аноним'}
             </div>
-            {/* Рейтинг теперь 0.0 по умолчанию */}
             <div style={{ fontSize: '12px', color: '#f57c00', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
               ⭐ {seller.rating ? seller.rating.toFixed(1) : '0.0'} <span style={{ color: '#78909c', fontWeight: 'normal' }}>({seller.reviewsCount || 0} отзывов)</span>
             </div>
@@ -254,7 +253,6 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
                           <span style={{ fontWeight: '700', fontSize: '14px', color: isWinner ? '#2e7d32' : '#333' }}>
                             {bidUser.customName || bidUser.firstName || bidUser.username || 'Аноним'} {isWinner && '🏆'}
                           </span>
-                          {/* ID участника удален */}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -282,28 +280,29 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         <div style={{height: '100px'}}></div>
       </div>
 
-      {/* 🌟 ОБНОВЛЕННАЯ ПАНЕЛЬ СТАВКИ */}
+      {/* 🌟 ОБНОВЛЕННАЯ АДАПТИВНАЯ ПАНЕЛЬ СТАВКИ */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #eee', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', zIndex: 100 }}>
-        {/* Левый блок с ценой */}
-        <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', marginRight: '12px', minWidth: '0' }}>
+        
+        {/* Левый блок с ценой (жестко держит ширину контента) */}
+        <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, marginRight: '16px' }}>
           <span style={{ fontSize: '12px', color: '#666', marginBottom: '2px', whiteSpace: 'nowrap' }}>Текущая ставка</span>
-          <span style={{ fontSize: '18px', fontWeight: '900', color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ fontSize: '18px', fontWeight: '900', color: '#111', whiteSpace: 'nowrap' }}>
             {localLot.currentPrice?.toLocaleString('ru-RU')} ₽
           </span>
         </div>
         
-        {/* Правый блок с полем и кнопкой */}
-        <div style={{ display: 'flex', gap: '8px', flex: '0 0 auto', alignItems: 'center' }}>
+        {/* Правый блок с полем и кнопкой (растягивается на всё свободное место) */}
+        <div style={{ display: 'flex', gap: '8px', flex: 1, alignItems: 'center' }}>
           <input 
             type="text" 
             value={bidAmount} 
             onChange={(e) => setBidAmount(e.target.value.replace(/\D/g, ''))} 
-            style={{ width: '90px', height: '44px', border: '1px solid #ddd', borderRadius: '12px', padding: '0 10px', fontSize: '15px', outline: 'none', background: '#f9f9f9', fontWeight: 'bold', textAlign: 'center' }}
+            style={{ flex: 1, minWidth: '60px', height: '44px', border: '1px solid #ddd', borderRadius: '12px', padding: '0 10px', fontSize: '15px', outline: 'none', background: '#f9f9f9', fontWeight: 'bold', textAlign: 'center' }}
             placeholder="+10%"
           />
           <button 
             onClick={() => setUserActionModal('bid')}
-            style={{ height: '44px', padding: '0 20px', background: '#ffcc00', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(255, 204, 0, 0.3)' }}
+            style={{ flexShrink: 0, height: '44px', padding: '0 20px', background: '#ffcc00', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(255, 204, 0, 0.3)' }}
           >
             Ставка
           </button>
