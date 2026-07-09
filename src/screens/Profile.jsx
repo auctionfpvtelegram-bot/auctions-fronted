@@ -47,7 +47,6 @@ function Profile({
 
   const isBanActive = currentUser.isBanned && currentUser.banUntil && new Date(currentUser.banUntil) > new Date();
 
-  // ⚡ Вспомогательная функция для умного отображения аватарки
   const getAvatarSrc = (url) => {
     if (!url) return null;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
@@ -65,9 +64,7 @@ function Profile({
         </div>
       )}
 
-      {/* ⚡ ОБНОВЛЕННАЯ КАРТОЧКА ПРОФИЛЯ С АВАТАРКОЙ И ID */}
       <div className="profile-user-card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: '#fff', borderRadius: '12px', margin: '16px 0', cursor: 'pointer' }} onClick={() => handleOpenPublicProfile(currentUser.id, 'profile')}>
-        {/* Аватарка */}
         {currentUser?.avatarUrl ? (
           <img 
             src={getAvatarSrc(currentUser.avatarUrl)} 
@@ -78,13 +75,11 @@ function Profile({
           <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👤</div>
         )}
 
-        {/* Текстовая информация */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>
             {currentUser?.customName || currentUser?.firstName || 'Пользователь'}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {/* СТРОГО СОХРАНЯЕМ ID */}
             <span style={{ fontSize: '11px', color: '#999', background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px', width: 'fit-content' }}>
               ID: {currentUser?.id}
             </span>
@@ -95,9 +90,27 @@ function Profile({
         </div>
       </div>
 
-      {/* ⚡ ОДНА КНОПКА F.A.Q ВМЕСТО ТЕХПОДДЕРЖКИ */}
       <div className="profile-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '0 16px', marginBottom: '16px' }}>
-        <button className="action-btn" style={{ margin: 0, background: '#e3f2fd', color: '#1976d2', borderColor: '#bbdefb' }} onClick={() => setCurrentScreen('faq')}>❓ F.A.Q.</button>
+        
+        {/* ⚡ КРАСИВАЯ КНОПКА F.A.Q. С ГРАДИЕНТОМ */}
+        <button 
+          className="action-btn" 
+          style={{ 
+            margin: 0, 
+            background: 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)', 
+            color: '#3730a3', 
+            border: '1px solid #c7d2fe',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            fontWeight: '600'
+          }} 
+          onClick={() => setCurrentScreen('faq')}
+        >
+          <span style={{ fontSize: '18px' }}>💡</span> Частые вопросы
+        </button>
+
         <button className="action-btn" style={{ margin: 0 }} onClick={() => setCurrentScreen('settings')}>⚙️ Настройки</button>
         {isAdmin && (
           <button className="action-btn" style={{ margin: 0, borderColor: '#fbc02d', color: '#fbc02d', gridColumn: 'span 2' }} onClick={() => setCurrentScreen('adminDashboard')}>👑 Админка</button>

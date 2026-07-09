@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL } from '../config';
-// 📦 Импортируем дочерние экраны админки из подпапки src/screens/admin/
 import { AdminDashboard } from './admin/AdminDashboard';
 import { AdminLots } from './admin/AdminLots';
 import { AdminReviews } from './admin/AdminReviews';
@@ -11,17 +10,15 @@ import { AdminProfiles } from './admin/AdminProfiles';
 function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) {
   const [adminScreen, setAdminScreen] = useState('dashboard');
   
-  // Состояния для дашборда, настроек и списков
   const [adminStats, setAdminStats] = useState(null);
   const [globalBanner, setGlobalBanner] = useState({ 
     isBannerOn: false, bannerText: '', bannerLink: '', isChannelOn: true, isGroupOn: true 
   });
   const [adminLotsList, setAdminLotsList] = useState([]);
-  const [adminActiveTab, setAdminActiveTab] = useState('check'); // check | active | archive
+  const [adminActiveTab, setAdminActiveTab] = useState('check');
   const [adminReviewsList, setAdminReviewsList] = useState([]);
   const [adminReviewsTab, setAdminReviewsTab] = useState('MODERATION');
   
-  // Состояния для техподдержки
   const [adminTickets, setAdminTickets] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
@@ -29,55 +26,24 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
   const [adminSelectedPhoto, setAdminSelectedPhoto] = useState(null);
   const [adminModal, setAdminModal] = useState(null);
   
-  // Состояния для красивого отклонения
   const [isRejectMode, setIsRejectMode] = useState(false);
   const [rejectReasonText, setRejectReasonText] = useState('');
 
-  // ⚡ НОВЫЕ СТЕЙТЫ ДЛЯ F.A.Q.
   const [adminFaqs, setAdminFaqs] = useState([]);
   const [newFaqQuestion, setNewFaqQuestion] = useState('');
   const [newFaqAnswer, setNewFaqAnswer] = useState('');
+  // ⚡ СТЕЙТ ДЛЯ ПРИОРИТЕТА
+  const [newFaqPriority, setNewFaqPriority] = useState(0);
 
-  // --- ЭФФЕКТЫ ЗАГРУЗКИ ДАННЫХ ---
   useEffect(() => {
-    // 1. Статистика
-    fetch(`${API_URL}/api/admin/stats`)
-      .then(res => res.json())
-      .then(data => setAdminStats(data))
-      .catch(err => console.error(err));
-
-    // 2. Системные настройки
-    fetch(`${API_URL}/api/system-settings`)
-      .then(res => res.json())
-      .then(data => setGlobalBanner(data))
-      .catch(err => console.error(err));
-
-    // 3. Лоты
-    fetch(`${API_URL}/api/admin/lots`)
-      .then(res => res.json())
-      .then(data => setAdminLotsList(data))
-      .catch(err => console.error(err));
-
-    // 4. Отзывы
-    fetch(`${API_URL}/api/admin/reviews`)
-      .then(res => res.json())
-      .then(data => setAdminReviewsList(data))
-      .catch(err => console.error(err));
-
-    // 5. Обращения (Тикеты)
-    fetch(`${API_URL}/api/admin/tickets`)
-      .then(res => res.json())
-      .then(data => setAdminTickets(data))
-      .catch(err => console.error(err));
-
-    // 6. F.A.Q.
-    fetch(`${API_URL}/api/faq`)
-      .then(res => res.json())
-      .then(data => setAdminFaqs(Array.isArray(data) ? data : []))
-      .catch(err => console.error(err));
+    fetch(`${API_URL}/api/admin/stats`).then(res => res.json()).then(data => setAdminStats(data)).catch(err => console.error(err));
+    fetch(`${API_URL}/api/system-settings`).then(res => res.json()).then(data => setGlobalBanner(data)).catch(err => console.error(err));
+    fetch(`${API_URL}/api/admin/lots`).then(res => res.json()).then(data => setAdminLotsList(data)).catch(err => console.error(err));
+    fetch(`${API_URL}/api/admin/reviews`).then(res => res.json()).then(data => setAdminReviewsList(data)).catch(err => console.error(err));
+    fetch(`${API_URL}/api/admin/tickets`).then(res => res.json()).then(data => setAdminTickets(data)).catch(err => console.error(err));
+    fetch(`${API_URL}/api/faq`).then(res => res.json()).then(data => setAdminFaqs(Array.isArray(data) ? data : [])).catch(err => console.error(err));
   }, [adminScreen]);
 
-  // Загрузка чата при открытии обращения
   useEffect(() => {
     if (activeChat) {
       loadMessages(activeChat);
@@ -93,7 +59,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
       .catch(() => setChatMessages([]));
   };
 
-  // --- ХЕНДЛЕРЫ ДЕЙСТВИЙ ---
   const handlePhotoSelect = (e) => {
     if (e.target.files && e.target.files[0]) {
       const reader = new FileReader();
@@ -154,7 +119,7 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
       .catch(err => console.error(err));
   };
 
-  // ⚡ ХЕНДЛЕРЫ F.A.Q.
+  // ⚡ ОТПРАВЛЯЕМ ПРИОРИТЕТ НА СЕРВЕР
   const handleCreateFaq = () => {
     if (!newFaqQuestion.trim() || !newFaqAnswer.trim()) {
       return setAlertData({ message: 'Пожалуйста, заполните вопрос и ответ.' });
@@ -162,13 +127,16 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
     fetch(`${API_URL}/api/admin/faq`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: newFaqQuestion, answer: newFaqAnswer })
+      body: JSON.stringify({ question: newFaqQuestion, answer: newFaqAnswer, priority: newFaqPriority })
     })
     .then(res => res.json())
     .then(data => {
-      setAdminFaqs([data, ...adminFaqs]);
+      // Чтобы новые данные сразу отсортировались визуально
+      const updatedList = [data, ...adminFaqs].sort((a, b) => b.priority - a.priority || b.id - a.id);
+      setAdminFaqs(updatedList);
       setNewFaqQuestion('');
       setNewFaqAnswer('');
+      setNewFaqPriority(0); // Сбрасываем приоритет
       setAlertData({ message: '✅ Вопрос успешно добавлен в базу!' });
     })
     .catch(err => console.error(err));
@@ -184,7 +152,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
       .catch(err => console.error(err));
   };
 
-  // --- РЕНДЕРИНГ МОДАЛЬНЫХ ОКОН ---
   const renderAdminModal = () => {
     if (!adminModal) return null;
     const { type, data } = adminModal;
@@ -203,7 +170,7 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
                   <textarea 
                     value={rejectReasonText}
                     onChange={(e) => setRejectReasonText(e.target.value)}
-                    placeholder="Например: Некачественные фотографии, товар не соответствует категории или некорректное описание..."
+                    placeholder="Например: Некачественные фотографии..."
                     rows={4}
                     style={{ width: '100%', border: '1px solid #ddd', borderRadius: '10px', padding: '10px', boxSizing: 'border-box', outline: 'none', resize: 'none', marginBottom: '16px', fontFamily: 'inherit', fontSize: '13px' }}
                   />
@@ -273,19 +240,17 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
     );
   };
 
-  // --- МАППИНГ ЭКРАНОВ ---
   return (
     <div className="admin-root-container" style={{ maxWidth: '600px', margin: '0 auto', background: '#fff' }}>
       
       {adminScreen === 'dashboard' && (
         <>
-          {/* ⚡ ВРЕМЕННАЯ КНОПКА ПРЯМО НАД ДАШБОРДОМ ДЛЯ ПЕРЕХОДА В F.A.Q. */}
           <div style={{ padding: '16px 16px 0 16px' }}>
              <button 
                 onClick={() => setAdminScreen('faq')} 
                 style={{ width: '100%', padding: '14px', background: '#1976d2', color: '#fff', borderRadius: '12px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', boxShadow: '0 2px 8px rgba(25, 118, 210, 0.2)' }}
              >
-               <span style={{ fontSize: '18px' }}>❓</span> Управление F.A.Q. (Частые вопросы)
+               <span style={{ fontSize: '18px' }}>💡</span> Управление Базой Знаний
              </button>
           </div>
           
@@ -296,12 +261,11 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
         </>
       )}
 
-      {/* ⚡ НОВЫЙ ЭКРАН: ПАНЕЛЬ УПРАВЛЕНИЯ F.A.Q. */}
       {adminScreen === 'faq' && (
         <div style={{ padding: '16px', paddingBottom: '40px' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
             <button onClick={() => setAdminScreen('dashboard')} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', marginRight: '10px' }}>{'<'}</button>
-            <h2 style={{ margin: 0, fontSize: '20px' }}>Управление F.A.Q.</h2>
+            <h2 style={{ margin: 0, fontSize: '20px' }}>База Знаний (F.A.Q.)</h2>
           </div>
           
           <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
@@ -317,8 +281,21 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
                placeholder="Ответ (подробное описание)" 
                value={newFaqAnswer} 
                onChange={e => setNewFaqAnswer(e.target.value)} 
-               style={{ width: '100%', padding: '12px', marginBottom: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', minHeight: '100px', resize: 'vertical', outline: 'none', fontSize: '14px', fontFamily: 'inherit' }} 
+               style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', minHeight: '100px', resize: 'vertical', outline: 'none', fontSize: '14px', fontFamily: 'inherit' }} 
              />
+             
+             {/* ⚡ ВВОД ПРИОРИТЕТА */}
+             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+               <span style={{ fontSize: '14px', color: '#555' }}>Приоритет:</span>
+               <input 
+                 type="number" 
+                 value={newFaqPriority} 
+                 onChange={e => setNewFaqPriority(Number(e.target.value))} 
+                 style={{ width: '80px', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }} 
+               />
+               <span style={{ fontSize: '11px', color: '#888' }}>(чем выше число, тем выше вопрос в списке)</span>
+             </div>
+
              <button 
                onClick={handleCreateFaq} 
                style={{ width: '100%', padding: '14px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px' }}
@@ -335,7 +312,12 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
               {adminFaqs.map(faq => (
                  <div key={faq.id} style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                    <div>
-                     <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', color: '#111' }}>{faq.question}</h4>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                       <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', color: '#111' }}>{faq.question}</h4>
+                       <span style={{ background: '#e3f2fd', color: '#1976d2', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>
+                         ⭐ {faq.priority || 0}
+                       </span>
+                     </div>
                      <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: '1.4' }}>{faq.answer}</p>
                    </div>
                    <button 
@@ -351,37 +333,11 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
         </div>
       )}
 
-      {adminScreen === 'lots' && (
-        <AdminLots 
-          adminLotsList={adminLotsList} adminActiveTab={adminActiveTab} 
-          setAdminActiveTab={setAdminActiveTab} setAdminScreen={setAdminScreen} setAdminModal={setAdminModal} 
-        />
-      )}
-      {adminScreen === 'reviews' && (
-        <AdminReviews 
-          adminReviewsList={adminReviewsList} adminReviewsTab={adminReviewsTab} 
-          setAdminReviewsTab={setAdminReviewsTab} setAdminScreen={setAdminScreen} setAdminModal={setAdminModal} 
-        />
-      )}
-      {adminScreen === 'tickets' && (
-        <AdminTickets 
-          adminTickets={adminTickets} activeChat={activeChat} setActiveChat={setActiveChat} 
-          chatMessages={chatMessages} setChatMessages={setChatMessages} newMessageText={newMessageText} 
-          setNewMessageText={setNewMessageText} loadMessages={loadMessages} sendMessageWithPhoto={sendMessageWithPhoto} 
-          setAdminScreen={setAdminScreen} handlePhotoSelect={handlePhotoSelect} adminSelectedPhoto={adminSelectedPhoto} 
-          currentUser={currentUser}
-        />
-      )}
-      {adminScreen === 'users' && (
-        <AdminUsers 
-          setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} 
-        />
-      )}
-      {adminScreen === 'profiles' && (
-        <AdminProfiles 
-          setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} 
-        />
-      )}
+      {adminScreen === 'lots' && <AdminLots adminLotsList={adminLotsList} adminActiveTab={adminActiveTab} setAdminActiveTab={setAdminActiveTab} setAdminScreen={setAdminScreen} setAdminModal={setAdminModal} />}
+      {adminScreen === 'reviews' && <AdminReviews adminReviewsList={adminReviewsList} adminReviewsTab={adminReviewsTab} setAdminReviewsTab={setAdminReviewsTab} setAdminScreen={setAdminScreen} setAdminModal={setAdminModal} />}
+      {adminScreen === 'tickets' && <AdminTickets adminTickets={adminTickets} activeChat={activeChat} setActiveChat={setActiveChat} chatMessages={chatMessages} setChatMessages={setChatMessages} newMessageText={newMessageText} setNewMessageText={setNewMessageText} loadMessages={loadMessages} sendMessageWithPhoto={sendMessageWithPhoto} setAdminScreen={setAdminScreen} handlePhotoSelect={handlePhotoSelect} adminSelectedPhoto={adminSelectedPhoto} currentUser={currentUser} />}
+      {adminScreen === 'users' && <AdminUsers setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} />}
+      {adminScreen === 'profiles' && <AdminProfiles setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} />}
       {adminModal && renderAdminModal()} 
     </div>
   );
