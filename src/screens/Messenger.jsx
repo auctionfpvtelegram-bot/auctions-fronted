@@ -9,22 +9,25 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   const [loadingPartner, setLoadingPartner] = useState(false);
   const [isListVisible, setIsListVisible] = useState(true); 
   const scrollRef = useRef(null);
+  
+  // Твой ID администратора
+  const adminId = '7688251487';
 
   const getAvatarSrc = (url) => {
     if (!url || url === 'null' || url === 'undefined' || url === '') return null;
     return url.startsWith('http') || url.startsWith('data:') ? url : `${API_URL}/api/image/${url}`;
   };
 
+  // 1. Загрузка всех чатов без скрытия реальной поддержки
   const loadChats = async (targetIdAfterLoad = null) => {
     try {
       const res = await fetch(`${API_URL}/api/users/${currentUser.id}/chats`);
       const data = await res.json();
       if (Array.isArray(data)) {
-        const filtered = data.filter(c => !c.isSupport);
-        setChats(filtered);
+        setChats(data); // ⚡ Сохраняем ВСЕ чаты из базы
 
         if (targetIdAfterLoad) {
-          const foundChat = filtered.find(c => c.users.some(u => u.id === targetIdAfterLoad));
+          const foundChat = data.find(c => c.users.some(u => u.id === targetIdAfterLoad));
           if (foundChat) {
             setActiveChat(foundChat);
             setIsListVisible(false);
@@ -49,10 +52,9 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     try {
       const res = await fetch(`${API_URL}/api/users/${currentUser.id}/chats`);
       const data = await res.json();
-      const filtered = Array.isArray(data) ? data.filter(c => !c.isSupport) : [];
-      setChats(filtered);
+      setChats(Array.isArray(data) ? data : []);
 
-      const existingChat = filtered.find(c => c.users.some(u => u.id === partnerId));
+      const existingChat = Array.isArray(data) ? data.find(c => c.users.some(u => u.id === partnerId)) : null;
       
       if (existingChat) {
         setActiveChat(existingChat);
@@ -86,30 +88,54 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   };
 
+  // 2. Автоматическое обновление сообщений каждые 3 секунды
   useEffect(() => {
+    let interval;
+    
+    const fetchMsgs = () => {
+      if (activeChat && activeChat.id !== 'NEW_CHAT' && activeChat.id !== 'SUPPORT_CHAT') {
+        fetch(`${API_URL}/api/chats/${activeChat.id}/messages`)
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data)) {
+              setMessages(prev => {
+                // Избегаем лишних рендеров и дерганья скролла, если новых сообщений нет
+                if (prev.length === data.length) return prev;
+                return data;
+              });
+            }
+          })
+          .catch(err => console.error(err));
+      }
+    };
+
     if (activeChat) {
       if (activeChat.id === 'NEW_CHAT' || activeChat.id === 'SUPPORT_CHAT') {
         setMessages([]); 
       } else {
-        fetch(`${API_URL}/api/chats/${activeChat.id}/messages`)
-          .then(res => res.json())
-          .then(data => setMessages(Array.isArray(data) ? data : []))
-          .catch(err => console.error(err));
+        fetchMsgs(); // Грузим сразу
+        interval = setInterval(fetchMsgs, 3000); // ⚡ АВТООБНОВЛЕНИЕ
       }
     }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [activeChat]);
 
+  // Автоскролл
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, isListVisible]);
 
+  // 3. Отправка сообщения
   const handleSendMessage = async () => {
     if (!inputText.trim() || !activeChat) return;
 
     const textToSend = inputText;
     setInputText('');
     const partner = activeChat.users.find(u => u.id !== currentUser.id) || {};
-    const receiverId = activeChat.isSupport ? '7688251487' : partner.id;
+    const receiverId = activeChat.isSupport ? adminId : partner.id;
 
     try {
       const res = await fetch(`${API_URL}/api/chats/send`, {
@@ -138,11 +164,10 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   };
 
-  // ⚡ ЛОГИКА ОТПРАВКИ ФОТОГРАФИИ С УВЕДОМЛЕНИЕМ
   const handleAttachPhoto = async () => {
     if (!activeChat) return;
     const partner = activeChat.users.find(u => u.id !== currentUser.id) || {};
-    const receiverId = activeChat.isSupport ? '7688251487' : partner.id;
+    const receiverId = activeChat.isSupport ? adminId : partner.id;
 
     try {
       await fetch(`${API_URL}/api/chats/expect-photo`, {
@@ -155,9 +180,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
       const alertMsg = "📸 Приложение сейчас закроется.\n\nПросто отправьте нужную фотографию боту в этот диалог, и она автоматически перешлется вашему собеседнику!";
       
       if (tg && tg.showAlert) {
-        tg.showAlert(alertMsg, () => {
-          tg.close();
-        });
+        tg.showAlert(alertMsg, () => { tg.close(); });
       } else {
         alert(alertMsg);
         tg?.close();
@@ -167,14 +190,26 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   };
 
-  const displayedChats = [...chats];
-  displayedChats.unshift({
-    id: 'SUPPORT_CHAT',
-    isSupport: true,
-    users: [currentUser, { id: '7688251487', customName: 'Поддержка', firstName: 'Поддержка' }],
-    messages: []
-  });
+  // ⚡ ФОРМИРУЕМ СПИСОК ЧАТОВ
+  let displayedChats = [...chats];
+  const realSupportChat = displayedChats.find(c => c.users.some(u => u.id === adminId));
 
+  if (realSupportChat) {
+    // Вытаскиваем реальный чат с админом и принудительно делаем его саппортом
+    displayedChats = displayedChats.filter(c => c.id !== realSupportChat.id);
+    realSupportChat.isSupport = true;
+    displayedChats.unshift(realSupportChat);
+  } else {
+    // Если чата с поддержкой еще не существует, рисуем красивую заглушку
+    displayedChats.unshift({
+      id: 'SUPPORT_CHAT',
+      isSupport: true,
+      users: [currentUser, { id: adminId, customName: 'Поддержка', firstName: 'Поддержка' }],
+      messages: []
+    });
+  }
+
+  // Вставка виртуального чата из профиля
   if (activeChat && activeChat.id === 'NEW_CHAT') {
     const partner = activeChat.users.find(u => u.id !== currentUser.id);
     if (!displayedChats.some(c => c.users.some(u => u.id === partner?.id) && !c.isSupport)) {
@@ -245,10 +280,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
           
           <div className="chat-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
             
-            {/* 🌟 ШАПКА ЧАТА */}
             <div className="chat-header" style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '14px', borderBottom: '1px solid #eee', flexShrink: 0 }}>
-              
-              {/* ⚡ КРАСИВАЯ КНОПКА НАЗАД */}
               <button 
                 onClick={() => setIsListVisible(true)} 
                 style={{ 
@@ -266,16 +298,14 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                 <h3 
                   className="chat-title" 
                   onClick={() => {
-                    // Переход в профиль при клике
                     if (!activeChat.isSupport && activePartner?.id && handleOpenPublicProfile) {
                       handleOpenPublicProfile(activePartner.id, 'messenger');
                     }
                   }}
                   style={{ 
-                    margin: 0, fontSize: '16px', fontWeight: 'bold', 
-                    color: '#111', // ⚡ УБРАЛИ СИНИЙ ЦВЕТ
+                    margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#111',
                     cursor: !activeChat.isSupport ? 'pointer' : 'default',
-                    textDecoration: 'none' // ⚡ УБРАЛИ ПОДЧЕРКИВАНИЕ
+                    textDecoration: 'none' 
                   }}
                 >
                   {activeChat.isSupport ? 'Поддержка' : (activePartner?.customName || activePartner?.firstName || 'Пользователь')}
@@ -288,7 +318,6 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               </div>
             </div>
             
-            {/* СООБЩЕНИЯ */}
             <div className="chat-messages-area" ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#f8fafc' }}>
               {messages.length === 0 && (
                 <div style={{ textAlign: 'center', color: '#999', marginTop: '20px', fontSize: '14px' }}>
@@ -334,28 +363,16 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               })}
             </div>
             
-            {/* ПАНЕЛЬ ВВОДА */}
             <div className="chat-input-area" style={{ borderTop: '1px solid #eee', display: 'flex', gap: '8px', padding: '12px 16px', alignItems: 'center', background: '#fff', flexShrink: 0, paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
-              <button 
-                onClick={handleAttachPhoto} 
-                style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#888' }}
-              >
+              <button onClick={handleAttachPhoto} style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#888' }}>
                 📎
               </button>
-              
               <input 
-                type="text" 
-                placeholder="Сообщение..." 
-                value={inputText} 
-                onChange={e => setInputText(e.target.value)}
-                onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
+                type="text" placeholder="Сообщение..." value={inputText} 
+                onChange={e => setInputText(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
                 style={{ flex: 1, height: '42px', borderRadius: '20px', border: '1px solid #cbd5e1', padding: '0 16px', outline: 'none', fontSize: '15px' }}
               />
-              
-              <button 
-                onClick={handleSendMessage} 
-                style={{ background: '#ffcc00', border: 'none', borderRadius: '50%', width: '42px', height: '42px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 'bold', boxShadow: '0 2px 6px rgba(255,204,0,0.3)' }}
-              >
+              <button onClick={handleSendMessage} style={{ background: '#ffcc00', border: 'none', borderRadius: '50%', width: '42px', height: '42px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 'bold', boxShadow: '0 2px 6px rgba(255,204,0,0.3)' }}>
                 ➤
               </button>
             </div>
