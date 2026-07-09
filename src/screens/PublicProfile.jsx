@@ -1,7 +1,7 @@
 import React from 'react';
 import { API_URL } from '../config';
 
-function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileReferrer, currentUser, setAlertData }) {
+function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileReferrer, currentUser, setAlertData, setActiveChatPartnerId }) {
   if (!publicProfileData) {
     return <div className="app-container" style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>🚁 Загрузка...</div>;
   }
@@ -101,16 +101,26 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
 
       {/* КНОПКИ СВЯЗИ В ПУБЛИЧНОМ ПРОФИЛЕ */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px', width: '100%', padding: '0 16px', boxSizing: 'border-box' }}>
-        
-        {/* Главная привлекательная кнопка мессенджера */}
+        {/* ⚡ Главная яркая кнопка мессенджера (запоминает собеседника) */}
         <button 
           onClick={() => {
-            // Логика перехода в Messenger.jsx и авто-открытия чата с publicProfileData.id
-            setCurrentScreen('messenger'); 
+            setActiveChatPartnerId(publicProfileData.id); // Запоминаем, кому пишем
+            setCurrentScreen('messenger'); // Переходим в мессенджер
           }}
-          style={{ width: '100%', height: '50px', background: 'linear-gradient(135deg, #1976d2, #00c6ff)', color: '#fff', border: 'none', borderRadius: '14px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(25, 118, 210, 0.3)' }}
+          style={{
+            width: '100%',
+            height: '48px',
+            background: '#ffcc00', // Фирменный желтый цвет проекта
+            color: '#000',
+            border: 'none',
+            borderRadius: '12px',
+            fontWeight: 'bold',
+            fontSize: '15px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 10px rgba(255, 204, 0, 0.2)'
+          }}
         >
-          <span>💬</span> Написать в приложении
+          💬 Написать внутри приложения
         </button>
 
         {/* Вторичная (скромная) кнопка Telegram */}

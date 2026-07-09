@@ -48,6 +48,9 @@ function App() {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [globalBanner, setGlobalBanner] = useState({ isBannerOn: false, bannerText: '', bannerLink: '' });
 
+  // ⚡ НОВЫЙ СТЕЙТ: ID собеседника для авто-открытия чата в мессенджере
+  const [activeChatPartnerId, setActiveChatPartnerId] = useState(null);
+
   // ⚡ Мгновенная инициализация ID пользователя (Кнопки докбара прогрузятся СРАЗУ)
   const [currentUser, setCurrentUser] = useState(getInitialTelegramUser());
 
@@ -216,7 +219,6 @@ function App() {
         {/* Кнопки теперь рендерятся мгновенно, так как id заполнен сразу */}
         {currentUser.id && currentScreen !== 'adminDashboard' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-
             {/* ⚡ НОВАЯ КНОПКА МЕССЕНДЖЕРА */}
             <div
               style={{ position: 'relative', cursor: 'pointer', fontSize: '22px', display: 'flex', alignItems: 'center' }}
@@ -250,7 +252,6 @@ function App() {
             >
               👤
             </div>
-
           </div>
         )}
       </div>
@@ -274,14 +275,22 @@ function App() {
       {currentScreen === 'adminDashboard' && <Admin setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} setConfirmData={setConfirmData} />}
       {currentScreen === 'completedLot' && <CompletedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
       {currentScreen === 'feedback' && <Feedback setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
-      {currentScreen === 'publicProfile' && <PublicProfile setCurrentScreen={setCurrentScreen} currentUser={currentUser} publicProfileData={publicProfileData} referrer={publicProfileReferrer} />}
+      {currentScreen === 'publicProfile' && <PublicProfile setCurrentScreen={setCurrentScreen} currentUser={currentUser} publicProfileData={publicProfileData} referrer={publicProfileReferrer} setActiveChatPartnerId={setActiveChatPartnerId} />}
       {currentScreen === 'rejectedLot' && <RejectedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} lot={selectedLot} setAlertData={setAlertData} />}
       {/* Передаем исправленный метод фонового обновления данных */}
       {currentScreen === 'settings' && <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} refreshCurrentUser={refreshCurrentUser} />}
       {currentScreen === 'writeReview' && <WriteReview setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} setAlertData={setAlertData} />}
       {currentScreen === 'ticketHistory' && <TicketHistory setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
-      {/* ⚡ НОВЫЙ ЭКРАН: Мессенджер */}
-      {currentScreen === 'messenger' && <Messenger setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
+
+      {/* ⚡ НОВЫЙ ЭКРАН: Мессенджер с передачей ID собеседника */}
+      {currentScreen === 'messenger' && (
+        <Messenger
+          setCurrentScreen={setCurrentScreen}
+          currentUser={currentUser}
+          activeChatPartnerId={activeChatPartnerId}
+          setActiveChatPartnerId={setActiveChatPartnerId}
+        />
+      )}
     </div>
   );
 }
