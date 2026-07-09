@@ -10,7 +10,6 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   const [isListVisible, setIsListVisible] = useState(true); 
   const scrollRef = useRef(null);
 
-  // Исправленная и безопасная проверка аватарок
   const getAvatarSrc = (url) => {
     if (!url || url === 'null' || url === 'undefined' || url === '') return null;
     return url.startsWith('http') || url.startsWith('data:') ? url : `${API_URL}/api/image/${url}`;
@@ -139,6 +138,25 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   };
 
+  // ⚡ ЛОГИКА ОТПРАВКИ ФОТОГРАФИИ
+  const handleAttachPhoto = async () => {
+    if (!activeChat) return;
+    const partner = activeChat.users.find(u => u.id !== currentUser.id) || {};
+    const receiverId = activeChat.isSupport ? '7688251487' : partner.id;
+
+    try {
+      await fetch(`${API_URL}/api/chats/expect-photo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senderId: currentUser.id, receiverId })
+      });
+      // Закрываем приложение, чтобы юзер кинул фото в бота
+      window.Telegram?.WebApp?.close();
+    } catch (err) {
+      console.error("Ошибка при запросе фото:", err);
+    }
+  };
+
   const displayedChats = [...chats];
   displayedChats.unshift({
     id: 'SUPPORT_CHAT',
@@ -200,7 +218,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                     {chat.isSupport && <span style={{ fontSize: '12px' }}>📌</span>}
                   </h4>
                   <p className="ticket-preview" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#666', fontSize: '13px' }}>
-                    {chat.messages?.[0]?.text || (chat.id === 'NEW_CHAT' ? 'Новый диалог' : 'Нет сообщений')}
+                    {chat.messages?.[0]?.photo ? '📷 Фотография' : (chat.messages?.[0]?.text || (chat.id === 'NEW_CHAT' ? 'Новый диалог' : 'Нет сообщений'))}
                   </p>
                 </div>
               </div>
@@ -237,7 +255,8 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               </div>
             </div>
             
-            <div className="chat-messages-area" ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
+            {/* ⚡ ВЫРОВНЕННАЯ ЗОНА СООБЩЕНИЙ */}
+            <div className="chat-messages-area" ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#f8fafc' }}>
               {messages.length === 0 && (
                 <div style={{ textAlign: 'center', color: '#999', marginTop: '20px', fontSize: '14px' }}>
                   Напишите сообщение, чтобы начать диалог...
@@ -247,9 +266,34 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               {messages.map(msg => {
                 const isMine = msg.senderId === currentUser.id;
                 return (
-                  <div key={msg.id} className={`message-bubble ${isMine ? 'message-out' : 'message-in'}`}>
-                    {msg.text}
-                    <span className="message-time">
+                  <div 
+                    key={msg.id} 
+                    style={{
+                      alignSelf: isMine ? 'flex-end' : 'flex-start',
+                      background: isMine ? '#ffcc00' : '#fff',
+                      color: '#000',
+                      padding: '10px 14px',
+                      borderRadius: '16px',
+                      borderBottomRightRadius: isMine ? '2px' : '16px',
+                      borderBottomLeftRadius: isMine ? '16px' : '2px',
+                      maxWidth: '75%',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                  >
+                    {/* Рендер фото, если оно есть */}
+                    {msg.photo && (
+                      <img 
+                        src={getAvatarSrc(msg.photo)} 
+                        alt="attachment" 
+                        style={{ width: '100%', borderRadius: '8px', marginBottom: msg.text ? '8px' : '0', display: 'block' }} 
+                      />
+                    )}
+                    
+                    {msg.text && <span style={{ fontSize: '14px', wordBreak: 'break-word', lineHeight: '1.4' }}>{msg.text}</span>}
+                    
+                    <span style={{ fontSize: '10px', color: isMine ? '#8a6d00' : '#888', alignSelf: 'flex-end', marginTop: '4px', fontWeight: 'bold' }}>
                       {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -257,16 +301,30 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               })}
             </div>
             
-            <div className="chat-input-area" style={{ borderTop: '1px solid #eee' }}>
+            {/* ⚡ ПАНЕЛЬ ВВОДА СО СКРЕПКОЙ */}
+            <div className="chat-input-area" style={{ borderTop: '1px solid #eee', display: 'flex', gap: '8px', padding: '12px 16px', alignItems: 'center' }}>
+              <button 
+                onClick={handleAttachPhoto} 
+                style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#888' }}
+              >
+                📎
+              </button>
+              
               <input 
                 type="text" 
-                className="chat-input" 
-                placeholder="Введите сообщение..." 
+                placeholder="Сообщение..." 
                 value={inputText} 
                 onChange={e => setInputText(e.target.value)}
                 onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
+                style={{ flex: 1, height: '42px', borderRadius: '20px', border: '1px solid #cbd5e1', padding: '0 16px', outline: 'none', fontSize: '15px' }}
               />
-              <button className="chat-send-btn" onClick={handleSendMessage}>➤</button>
+              
+              <button 
+                onClick={handleSendMessage} 
+                style={{ background: '#ffcc00', border: 'none', borderRadius: '50%', width: '42px', height: '42px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 'bold', boxShadow: '0 2px 6px rgba(255,204,0,0.3)' }}
+              >
+                ➤
+              </button>
             </div>
 
           </div>
