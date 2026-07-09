@@ -138,6 +138,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   };
 
+  // ⚡ ЛОГИКА ОТПРАВКИ ФОТОГРАФИИ С УВЕДОМЛЕНИЕМ
   const handleAttachPhoto = async () => {
     if (!activeChat) return;
     const partner = activeChat.users.find(u => u.id !== currentUser.id) || {};
@@ -149,7 +150,18 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ senderId: currentUser.id, receiverId })
       });
-      window.Telegram?.WebApp?.close();
+      
+      const tg = window.Telegram?.WebApp;
+      const alertMsg = "📸 Приложение сейчас закроется.\n\nПросто отправьте нужную фотографию боту в этот диалог, и она автоматически перешлется вашему собеседнику!";
+      
+      if (tg && tg.showAlert) {
+        tg.showAlert(alertMsg, () => {
+          tg.close();
+        });
+      } else {
+        alert(alertMsg);
+        tg?.close();
+      }
     } catch (err) {
       console.error("Ошибка при запросе фото:", err);
     }
@@ -173,7 +185,6 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   const activePartner = activeChat ? activeChat.users.find(u => u.id !== currentUser.id) : null;
 
   return (
-    // ⚡ POSITION FIXED жестко блокирует экран и не дает строке ввода уплыть
     <div style={{ position: 'fixed', top: '60px', left: 0, right: 0, bottom: 0, display: 'flex', background: '#f4f6f9', overflow: 'hidden', zIndex: 100 }}>
       
       {/* 📁 СПИСОК ДИАЛОГОВ */}
@@ -234,13 +245,19 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
           
           <div className="chat-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
             
-            {/* 🌟 ШАПКА ЧАТА (с кликабельным ником и SVG-стрелкой) */}
+            {/* 🌟 ШАПКА ЧАТА */}
             <div className="chat-header" style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '14px', borderBottom: '1px solid #eee', flexShrink: 0 }}>
+              
+              {/* ⚡ КРАСИВАЯ КНОПКА НАЗАД */}
               <button 
                 onClick={() => setIsListVisible(true)} 
-                style={{ background: 'none', border: 'none', color: '#1976d2', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                style={{ 
+                  background: '#f0f2f5', border: 'none', color: '#333', cursor: 'pointer', 
+                  width: '36px', height: '36px', borderRadius: '50%', display: 'flex', 
+                  alignItems: 'center', justifyContent: 'center', flexShrink: 0 
+                }}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
@@ -249,16 +266,16 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                 <h3 
                   className="chat-title" 
                   onClick={() => {
-                    // ⚡ Переход в профиль при клике
+                    // Переход в профиль при клике
                     if (!activeChat.isSupport && activePartner?.id && handleOpenPublicProfile) {
                       handleOpenPublicProfile(activePartner.id, 'messenger');
                     }
                   }}
                   style={{ 
                     margin: 0, fontSize: '16px', fontWeight: 'bold', 
-                    color: !activeChat.isSupport ? '#1976d2' : '#111', 
+                    color: '#111', // ⚡ УБРАЛИ СИНИЙ ЦВЕТ
                     cursor: !activeChat.isSupport ? 'pointer' : 'default',
-                    textDecoration: !activeChat.isSupport ? 'underline' : 'none' 
+                    textDecoration: 'none' // ⚡ УБРАЛИ ПОДЧЕРКИВАНИЕ
                   }}
                 >
                   {activeChat.isSupport ? 'Поддержка' : (activePartner?.customName || activePartner?.firstName || 'Пользователь')}
@@ -317,7 +334,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               })}
             </div>
             
-            {/* ⚡ ПАНЕЛЬ ВВОДА (жестко закреплена снизу) */}
+            {/* ПАНЕЛЬ ВВОДА */}
             <div className="chat-input-area" style={{ borderTop: '1px solid #eee', display: 'flex', gap: '8px', padding: '12px 16px', alignItems: 'center', background: '#fff', flexShrink: 0, paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
               <button 
                 onClick={handleAttachPhoto} 
