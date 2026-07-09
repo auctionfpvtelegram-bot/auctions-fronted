@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { API_URL } from '../config';
 
-function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActiveChatPartnerId }) {
+function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActiveChatPartnerId, handleOpenPublicProfile }) {
   const [chats, setChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -138,7 +138,6 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   };
 
-  // ⚡ ЛОГИКА ОТПРАВКИ ФОТОГРАФИИ
   const handleAttachPhoto = async () => {
     if (!activeChat) return;
     const partner = activeChat.users.find(u => u.id !== currentUser.id) || {};
@@ -150,7 +149,6 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ senderId: currentUser.id, receiverId })
       });
-      // Закрываем приложение, чтобы юзер кинул фото в бота
       window.Telegram?.WebApp?.close();
     } catch (err) {
       console.error("Ошибка при запросе фото:", err);
@@ -175,11 +173,12 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   const activePartner = activeChat ? activeChat.users.find(u => u.id !== currentUser.id) : null;
 
   return (
-    <div style={{ display: 'flex', width: '100%', height: 'calc(100vh - 60px)', background: '#f4f6f9', overflow: 'hidden' }}>
+    // ⚡ POSITION FIXED жестко блокирует экран и не дает строке ввода уплыть
+    <div style={{ position: 'fixed', top: '60px', left: 0, right: 0, bottom: 0, display: 'flex', background: '#f4f6f9', overflow: 'hidden', zIndex: 100 }}>
       
       {/* 📁 СПИСОК ДИАЛОГОВ */}
-      <div style={{ width: '100%', display: isListVisible ? 'flex' : 'none', flexDirection: 'column', background: '#fff' }}>
-        <div style={{ padding: '16px', borderBottom: '1px solid #eee', background: '#fff', zIndex: 10 }}>
+      <div style={{ width: '100%', display: isListVisible ? 'flex' : 'none', flexDirection: 'column', background: '#fff', height: '100%' }}>
+        <div style={{ padding: '16px', borderBottom: '1px solid #eee', background: '#fff', flexShrink: 0 }}>
           <h2 className="screen-title" style={{ margin: 0, fontSize: '18px' }}>Диалоги</h2>
         </div>
 
@@ -206,7 +205,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               >
                 <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: chat.isSupport ? '#fff3e0' : '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
                   {chat.isSupport ? <div style={{ fontSize: '24px' }}>🎧</div> : 
-                   avatarUrlValid ? <img src={avatarUrlValid} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="avatar" /> : 
+                   avatarUrlValid ? <img src={avatarUrlValid} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="avatar" onError={(e) => e.target.style.display='none'} /> : 
                    <div style={{ fontSize: '20px', color: '#78909c' }}>👤</div>}
                 </div>
                 
@@ -228,23 +227,40 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
       </div>
 
       {/* 💬 ОКНО ЧАТА */}
-      <div style={{ width: '100%', display: !isListVisible ? 'flex' : 'none', flexDirection: 'column', background: '#fff', position: 'relative' }}>
+      <div style={{ width: '100%', display: !isListVisible ? 'flex' : 'none', flexDirection: 'column', background: '#fff', height: '100%' }}>
         {loadingPartner ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>Загрузка диалога...</div>
         ) : activeChat ? (
           
-          <div className="chat-container" style={{ height: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className="chat-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
             
-            <div className="chat-header" style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', gap: '14px', borderBottom: '1px solid #eee' }}>
+            {/* 🌟 ШАПКА ЧАТА (с кликабельным ником и SVG-стрелкой) */}
+            <div className="chat-header" style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '14px', borderBottom: '1px solid #eee', flexShrink: 0 }}>
               <button 
                 onClick={() => setIsListVisible(true)} 
-                style={{ background: 'none', border: 'none', fontSize: '22px', color: '#1976d2', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                style={{ background: 'none', border: 'none', color: '#1976d2', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
               >
-                {'❮'}
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
               
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <h3 className="chat-title" style={{ margin: 0, fontSize: '16px', fontWeight: 'bold' }}>
+                <h3 
+                  className="chat-title" 
+                  onClick={() => {
+                    // ⚡ Переход в профиль при клике
+                    if (!activeChat.isSupport && activePartner?.id && handleOpenPublicProfile) {
+                      handleOpenPublicProfile(activePartner.id, 'messenger');
+                    }
+                  }}
+                  style={{ 
+                    margin: 0, fontSize: '16px', fontWeight: 'bold', 
+                    color: !activeChat.isSupport ? '#1976d2' : '#111', 
+                    cursor: !activeChat.isSupport ? 'pointer' : 'default',
+                    textDecoration: !activeChat.isSupport ? 'underline' : 'none' 
+                  }}
+                >
                   {activeChat.isSupport ? 'Поддержка' : (activePartner?.customName || activePartner?.firstName || 'Пользователь')}
                 </h3>
                 {!activeChat.isSupport && activePartner?.id && (
@@ -255,7 +271,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               </div>
             </div>
             
-            {/* ⚡ ВЫРОВНЕННАЯ ЗОНА СООБЩЕНИЙ */}
+            {/* СООБЩЕНИЯ */}
             <div className="chat-messages-area" ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#f8fafc' }}>
               {messages.length === 0 && (
                 <div style={{ textAlign: 'center', color: '#999', marginTop: '20px', fontSize: '14px' }}>
@@ -276,17 +292,17 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                       borderRadius: '16px',
                       borderBottomRightRadius: isMine ? '2px' : '16px',
                       borderBottomLeftRadius: isMine ? '16px' : '2px',
-                      maxWidth: '75%',
+                      maxWidth: '80%',
                       boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                       display: 'flex',
                       flexDirection: 'column'
                     }}
                   >
-                    {/* Рендер фото, если оно есть */}
                     {msg.photo && (
                       <img 
                         src={getAvatarSrc(msg.photo)} 
-                        alt="attachment" 
+                        alt="Фото" 
+                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/150?text=Ошибка+загрузки'; }}
                         style={{ width: '100%', borderRadius: '8px', marginBottom: msg.text ? '8px' : '0', display: 'block' }} 
                       />
                     )}
@@ -301,8 +317,8 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               })}
             </div>
             
-            {/* ⚡ ПАНЕЛЬ ВВОДА СО СКРЕПКОЙ */}
-            <div className="chat-input-area" style={{ borderTop: '1px solid #eee', display: 'flex', gap: '8px', padding: '12px 16px', alignItems: 'center' }}>
+            {/* ⚡ ПАНЕЛЬ ВВОДА (жестко закреплена снизу) */}
+            <div className="chat-input-area" style={{ borderTop: '1px solid #eee', display: 'flex', gap: '8px', padding: '12px 16px', alignItems: 'center', background: '#fff', flexShrink: 0, paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
               <button 
                 onClick={handleAttachPhoto} 
                 style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#888' }}

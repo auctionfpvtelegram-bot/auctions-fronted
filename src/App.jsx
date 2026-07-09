@@ -14,8 +14,9 @@ import Settings from './screens/Settings';
 import WriteReview from './screens/WriteReview';
 import TicketHistory from './screens/TicketHistory';
 import NotificationsPanel from './screens/NotificationsPanel';
-import Messenger from './screens/Messenger'; // ⚡ Добавлен импорт Мессенджера
+import Messenger from './screens/Messenger';
 
+// ⚡ Получаем данные Telegram мгновенно, до рендера, чтобы избежать лагов интерфейса
 const getInitialTelegramUser = () => {
   const tg = window.Telegram?.WebApp;
   const tgUser = tg?.initDataUnsafe?.user || { id: '7688251487', username: 'neffec', first_name: 'Admin' };
@@ -46,36 +47,38 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [globalBanner, setGlobalBanner] = useState({ isBannerOn: false, bannerText: '', bannerLink: '' });
-  
-  // ⚡ КРИТИЧЕСКИЙ СТЭЙТ ДЛЯ ПЕРЕХОДА В ЧАТЫ ИЗ ПРОФИЛЯ
+
+  // ⚡ НОВЫЙ СТЕЙТ: ID собеседника для авто-открытия чата в мессенджере
   const [activeChatPartnerId, setActiveChatPartnerId] = useState(null);
 
+  // ⚡ Мгновенная инициализация ID пользователя (Кнопки докбара прогрузятся СРАЗУ)
   const [currentUser, setCurrentUser] = useState(getInitialTelegramUser());
+
   const isAdmin = String(currentUser.id) === '7688251487';
 
+  // ⚡ ИСПРАВЛЕННАЯ ФУНКЦИЯ: Теперь передает полный объект Telegram, бэкенд не будет падать в ошибку
   const refreshCurrentUser = () => {
     const tg = window.Telegram?.WebApp;
     const tgUser = tg?.initDataUnsafe?.user || { id: '7688251487', username: 'neffec', first_name: 'Admin' };
-
     fetch(`${API_URL}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(tgUser)
     })
-    .then(res => res.json())
-    .then(data => {
-      const user = data.user || data;
-      if (user && !user.error) {
-        setCurrentUser(prev => ({
-          ...prev,
-          customName: user.customName,
-          avatarUrl: user.avatarUrl,
-          profileStatus: user.profileStatus || 'APPROVED',
-          profileRejectReason: user.profileRejectReason
-        }));
-      }
-    })
-    .catch(() => {});
+      .then(res => res.json())
+      .then(data => {
+        const user = data.user || data;
+        if (user && !user.error) {
+          setCurrentUser(prev => ({
+            ...prev,
+            customName: user.customName,
+            avatarUrl: user.avatarUrl,
+            profileStatus: user.profileStatus || 'APPROVED',
+            profileRejectReason: user.profileRejectReason
+          }));
+        }
+      })
+      .catch(() => {});
   };
 
   const handleError = (errorText, location = 'App.jsx') => {
@@ -105,26 +108,25 @@ function App() {
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.ready(); tg.expand(); }
     const tgUser = tg?.initDataUnsafe?.user || { id: '7688251487', username: 'neffec', first_name: 'Admin' };
-
-    fetch(`${API_URL}/api/auth`, { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify(tgUser) 
+    fetch(`${API_URL}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tgUser)
     })
       .then(res => res.json())
       .then(data => {
-          const user = data.user || data;
-          setCurrentUser({
-              id: String(user.id), firstName: user.firstName || 'Гость', rating: user.rating || 0.0,
-              dealsCount: user.dealsCount || 0, isBanned: user.isBanned, banReason: user.banReason,
-              banScope: user.banScope, banUntil: user.banUntil,
-              customName: user.customName,
-              avatarUrl: user.avatarUrl,
-              profileStatus: user.profileStatus || 'APPROVED',
-              profileRejectReason: user.profileRejectReason
-          });
-          if (data.favoriteLots) setFavoriteLots(data.favoriteLots);
-          if (data.notifications) setNotifications(data.notifications);
+        const user = data.user || data;
+        setCurrentUser({
+          id: String(user.id), firstName: user.firstName || 'Гость', rating: user.rating || 0.0,
+          dealsCount: user.dealsCount || 0, isBanned: user.isBanned, banReason: user.banReason,
+          banScope: user.banScope, banUntil: user.banUntil,
+          customName: user.customName,
+          avatarUrl: user.avatarUrl,
+          profileStatus: user.profileStatus || 'APPROVED',
+          profileRejectReason: user.profileRejectReason
+        });
+        if (data.favoriteLots) setFavoriteLots(data.favoriteLots);
+        if (data.notifications) setNotifications(data.notifications);
       })
       .catch(err => handleError(err.message, 'Авторизация'));
   }, []);
@@ -182,15 +184,15 @@ function App() {
     <div className="app-container" style={{ paddingTop: globalBanner.isBannerOn ? '100px' : '60px' }}>
       {/* ⚡ ГЛОБАЛЬНЫЙ БАННЕР */}
       {globalBanner.isBannerOn && (
-        <div 
+        <div
           onClick={() => {
             if (globalBanner.bannerLink) {
               window.Telegram?.WebApp?.openLink(globalBanner.bannerLink) || window.open(globalBanner.bannerLink, '_blank');
             }
           }}
-          style={{ 
-            position: 'fixed', top: 0, left: 0, width: '100%', background: '#ff9800', color: '#fff', 
-            padding: '10px 16px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold', 
+          style={{
+            position: 'fixed', top: 0, left: 0, width: '100%', background: '#ff9800', color: '#fff',
+            padding: '10px 16px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold',
             zIndex: 1000, boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
             cursor: globalBanner.bannerLink ? 'pointer' : 'default',
             boxSizing: 'border-box'
@@ -201,7 +203,7 @@ function App() {
         </div>
       )}
 
-      {/* ⚡ ВЕРХНЯЯ ПАНЕЛЬ */}
+      {/* ⚡ ГЛОБАЛЬНЫЙ ДОКБАР */}
       <div style={{
         position: 'fixed', top: globalBanner.isBannerOn ? '40px' : '0', left: 0, width: '100%',
         background: '#fff', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -213,18 +215,24 @@ function App() {
           )}
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{getPageTitle()}</h2>
         </div>
-        
+
+        {/* Кнопки теперь рендерятся мгновенно, так как id заполнен сразу */}
         {currentUser.id && currentScreen !== 'adminDashboard' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            
-            {/* КНОПКА МЕССЕНДЖЕРА */}
-            <div style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => setCurrentScreen('messenger')}>
-              <span style={{ fontSize: '22px' }}>💬</span>
+            {/* ⚡ НОВАЯ КНОПКА МЕССЕНДЖЕРА */}
+            <div
+              style={{ position: 'relative', cursor: 'pointer', fontSize: '22px', display: 'flex', alignItems: 'center' }}
+              onClick={() => setCurrentScreen('messenger')}
+            >
+              💬
             </div>
 
-            {/* КОЛОКОЛЬЧИК */}
-            <div style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => setIsNotifOpen(true)}>
-              <span style={{ fontSize: '22px' }}>🔔</span>
+            {/* Колокольчик уведомлений */}
+            <div
+              style={{ position: 'relative', cursor: 'pointer', fontSize: '22px', display: 'flex', alignItems: 'center' }}
+              onClick={() => setIsNotifOpen(true)}
+            >
+              🔔
               {unreadCount > 0 && (
                 <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#c62828', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                   {unreadCount}
@@ -232,11 +240,13 @@ function App() {
               )}
             </div>
 
-            {/* ПРОФИЛЬ */}
-            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => setCurrentScreen('profile')}>
-              <span style={{ fontSize: '22px' }}>👤</span>
+            {/* Иконка профиля */}
+            <div
+              style={{ cursor: 'pointer', fontSize: '22px', display: 'flex', alignItems: 'center' }}
+              onClick={() => setCurrentScreen('profile')}
+            >
+              👤
             </div>
-
           </div>
         )}
       </div>
@@ -244,35 +254,39 @@ function App() {
       {isNotifOpen && (
         <NotificationsPanel notifications={notifications} userId={currentUser.id} onClose={() => setIsNotifOpen(false)} onRead={() => setNotifications(notifications.map(n => ({...n, isRead: true})))} />
       )}
-      
+
       {currentScreen === 'home' && <Home setCurrentScreen={setCurrentScreen} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} isAdmin={isAdmin} />}
       {currentScreen === 'profile' && <Profile setCurrentScreen={setCurrentScreen} currentUser={currentUser} isAdmin={isAdmin} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
-      
-      {currentScreen === 'activeLot' && <ActiveLot 
-        setCurrentScreen={setCurrentScreen} 
-        currentUser={currentUser} 
-        selectedLot={selectedLot} 
+      {currentScreen === 'activeLot' && <ActiveLot
+        setCurrentScreen={setCurrentScreen}
+        currentUser={currentUser}
+        selectedLot={selectedLot}
         isAdmin={isAdmin}
-        isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)} 
-        toggleFavorite={toggleFavorite} 
-        handleOpenPublicProfile={handleOpenPublicProfile} 
+        isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)}
+        toggleFavorite={toggleFavorite}
+        handleOpenPublicProfile={handleOpenPublicProfile}
       />}
-      
       {currentScreen === 'addLot' && <AddLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
       {currentScreen === 'adminDashboard' && <Admin setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} setConfirmData={setConfirmData} />}
       {currentScreen === 'completedLot' && <CompletedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
       {currentScreen === 'feedback' && <Feedback setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
-      
-      {/* ⚡ ПЕРЕДАЕМ СТЭЙТ В ПУБЛИЧНЫЙ ПРОФИЛЬ */}
       {currentScreen === 'publicProfile' && <PublicProfile setCurrentScreen={setCurrentScreen} currentUser={currentUser} publicProfileData={publicProfileData} referrer={publicProfileReferrer} setActiveChatPartnerId={setActiveChatPartnerId} />}
-      
       {currentScreen === 'rejectedLot' && <RejectedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} lot={selectedLot} setAlertData={setAlertData} />}
+      {/* Передаем исправленный метод фонового обновления данных */}
       {currentScreen === 'settings' && <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} refreshCurrentUser={refreshCurrentUser} />}
       {currentScreen === 'writeReview' && <WriteReview setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} setAlertData={setAlertData} />}
       {currentScreen === 'ticketHistory' && <TicketHistory setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
-      
-      {/* ⚡ ПЕРЕДАЕМ СТЭЙТЫ В МЕССЕНДЖЕР */}
-      {currentScreen === 'messenger' && <Messenger setCurrentScreen={setCurrentScreen} currentUser={currentUser} activeChatPartnerId={activeChatPartnerId} setActiveChatPartnerId={setActiveChatPartnerId} />}
+
+      {/* ⚡ НОВЫЙ ЭКРАН: Мессенджер с передачей ID собеседника и функции открытия профиля */}
+      {currentScreen === 'messenger' && (
+        <Messenger
+          setCurrentScreen={setCurrentScreen}
+          currentUser={currentUser}
+          activeChatPartnerId={activeChatPartnerId}
+          setActiveChatPartnerId={setActiveChatPartnerId}
+          handleOpenPublicProfile={handleOpenPublicProfile}
+        />
+      )}
     </div>
   );
 }
