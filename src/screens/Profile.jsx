@@ -95,9 +95,9 @@ function Profile({
         </div>
       </div>
 
-      {/* ⚡ ОДНА КНОПКА ПОДДЕРЖКИ ВМЕСТО ДВУХ */}
+      {/* ⚡ ОДНА КНОПКА F.A.Q ВМЕСТО ТЕХПОДДЕРЖКИ */}
       <div className="profile-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '0 16px', marginBottom: '16px' }}>
-        <button className="action-btn" style={{ margin: 0, background: '#e3f2fd', color: '#1976d2', borderColor: '#bbdefb' }} onClick={() => setCurrentScreen('ticketHistory')}>🎧 Поддержка</button>
+        <button className="action-btn" style={{ margin: 0, background: '#e3f2fd', color: '#1976d2', borderColor: '#bbdefb' }} onClick={() => setCurrentScreen('faq')}>❓ F.A.Q.</button>
         <button className="action-btn" style={{ margin: 0 }} onClick={() => setCurrentScreen('settings')}>⚙️ Настройки</button>
         {isAdmin && (
           <button className="action-btn" style={{ margin: 0, borderColor: '#fbc02d', color: '#fbc02d', gridColumn: 'span 2' }} onClick={() => setCurrentScreen('adminDashboard')}>👑 Админка</button>

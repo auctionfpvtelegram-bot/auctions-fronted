@@ -29,9 +29,14 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
   const [adminSelectedPhoto, setAdminSelectedPhoto] = useState(null);
   const [adminModal, setAdminModal] = useState(null);
   
-  // ⚡ НОВЫЕ СТЕЙТЫ ДЛЯ КРАСИВОГО ОТКЛОНЕНИЯ
+  // Состояния для красивого отклонения
   const [isRejectMode, setIsRejectMode] = useState(false);
   const [rejectReasonText, setRejectReasonText] = useState('');
+
+  // ⚡ НОВЫЕ СТЕЙТЫ ДЛЯ F.A.Q.
+  const [adminFaqs, setAdminFaqs] = useState([]);
+  const [newFaqQuestion, setNewFaqQuestion] = useState('');
+  const [newFaqAnswer, setNewFaqAnswer] = useState('');
 
   // --- ЭФФЕКТЫ ЗАГРУЗКИ ДАННЫХ ---
   useEffect(() => {
@@ -63,6 +68,12 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
     fetch(`${API_URL}/api/admin/tickets`)
       .then(res => res.json())
       .then(data => setAdminTickets(data))
+      .catch(err => console.error(err));
+
+    // 6. F.A.Q.
+    fetch(`${API_URL}/api/faq`)
+      .then(res => res.json())
+      .then(data => setAdminFaqs(Array.isArray(data) ? data : []))
       .catch(err => console.error(err));
   }, [adminScreen]);
 
@@ -143,7 +154,37 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
       .catch(err => console.error(err));
   };
 
-  // --- РЕНДЕРИНГ МОДАЛЬНЫХ ОКОН С УЛУЧШЕННЫМ ОТКЛОНЕНИЕМ ---
+  // ⚡ ХЕНДЛЕРЫ F.A.Q.
+  const handleCreateFaq = () => {
+    if (!newFaqQuestion.trim() || !newFaqAnswer.trim()) {
+      return setAlertData({ message: 'Пожалуйста, заполните вопрос и ответ.' });
+    }
+    fetch(`${API_URL}/api/admin/faq`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: newFaqQuestion, answer: newFaqAnswer })
+    })
+    .then(res => res.json())
+    .then(data => {
+      setAdminFaqs([data, ...adminFaqs]);
+      setNewFaqQuestion('');
+      setNewFaqAnswer('');
+      setAlertData({ message: '✅ Вопрос успешно добавлен в базу!' });
+    })
+    .catch(err => console.error(err));
+  };
+
+  const handleDeleteFaq = (id) => {
+    if (!window.confirm('Вы уверены, что хотите удалить этот вопрос?')) return;
+    fetch(`${API_URL}/api/admin/faq/${id}`, { method: 'DELETE' })
+      .then(() => {
+        setAdminFaqs(adminFaqs.filter(f => f.id !== id));
+        setAlertData({ message: '🗑 Вопрос удален' });
+      })
+      .catch(err => console.error(err));
+  };
+
+  // --- РЕНДЕРИНГ МОДАЛЬНЫХ ОКОН ---
   const renderAdminModal = () => {
     if (!adminModal) return null;
     const { type, data } = adminModal;
@@ -154,7 +195,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
           
           {type === 'lotDetail' && (
             <div>
-              {/* Режим ввода причины отклонения лота */}
               {isRejectMode ? (
                 <div>
                   <h3 style={{ margin: '0 0 8px 0', color: '#c62828', fontSize: '18px' }}>🚫 Отклонение лота #{data.id}</h3>
@@ -187,7 +227,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
                   </div>
                 </div>
               ) : (
-                /* Обычный детальный просмотр лота модератором */
                 <div>
                   <h3 style={{ margin: '0 0 12px 0', fontSize: '18px' }}>Лот #{data.id}</h3>
                   <p style={{ margin: '6px 0', fontSize: '14px' }}><b>Название:</b> {data.title}</p>
@@ -237,12 +276,81 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
   // --- МАППИНГ ЭКРАНОВ ---
   return (
     <div className="admin-root-container" style={{ maxWidth: '600px', margin: '0 auto', background: '#fff' }}>
+      
       {adminScreen === 'dashboard' && (
-        <AdminDashboard 
-          adminStats={adminStats} globalBanner={globalBanner} setGlobalBanner={setGlobalBanner}
-          setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} 
-        />
+        <>
+          {/* ⚡ ВРЕМЕННАЯ КНОПКА ПРЯМО НАД ДАШБОРДОМ ДЛЯ ПЕРЕХОДА В F.A.Q. */}
+          <div style={{ padding: '16px 16px 0 16px' }}>
+             <button 
+                onClick={() => setAdminScreen('faq')} 
+                style={{ width: '100%', padding: '14px', background: '#1976d2', color: '#fff', borderRadius: '12px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', boxShadow: '0 2px 8px rgba(25, 118, 210, 0.2)' }}
+             >
+               <span style={{ fontSize: '18px' }}>❓</span> Управление F.A.Q. (Частые вопросы)
+             </button>
+          </div>
+          
+          <AdminDashboard 
+            adminStats={adminStats} globalBanner={globalBanner} setGlobalBanner={setGlobalBanner}
+            setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} 
+          />
+        </>
       )}
+
+      {/* ⚡ НОВЫЙ ЭКРАН: ПАНЕЛЬ УПРАВЛЕНИЯ F.A.Q. */}
+      {adminScreen === 'faq' && (
+        <div style={{ padding: '16px', paddingBottom: '40px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+            <button onClick={() => setAdminScreen('dashboard')} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', marginRight: '10px' }}>{'<'}</button>
+            <h2 style={{ margin: 0, fontSize: '20px' }}>Управление F.A.Q.</h2>
+          </div>
+          
+          <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+             <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#111' }}>Добавить новый вопрос</h3>
+             <input 
+               type="text" 
+               placeholder="Вопрос (заголовок)" 
+               value={newFaqQuestion} 
+               onChange={e => setNewFaqQuestion(e.target.value)} 
+               style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }} 
+             />
+             <textarea 
+               placeholder="Ответ (подробное описание)" 
+               value={newFaqAnswer} 
+               onChange={e => setNewFaqAnswer(e.target.value)} 
+               style={{ width: '100%', padding: '12px', marginBottom: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', minHeight: '100px', resize: 'vertical', outline: 'none', fontSize: '14px', fontFamily: 'inherit' }} 
+             />
+             <button 
+               onClick={handleCreateFaq} 
+               style={{ width: '100%', padding: '14px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px' }}
+             >
+               Создать вопрос
+             </button>
+          </div>
+
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#111' }}>Существующие вопросы</h3>
+          {adminFaqs.length === 0 ? (
+            <p style={{ color: '#888', fontSize: '14px' }}>Список пока пуст.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {adminFaqs.map(faq => (
+                 <div key={faq.id} style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                   <div>
+                     <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', color: '#111' }}>{faq.question}</h4>
+                     <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: '1.4' }}>{faq.answer}</p>
+                   </div>
+                   <button 
+                     onClick={() => handleDeleteFaq(faq.id)} 
+                     style={{ alignSelf: 'flex-end', background: '#ffebee', color: '#c62828', border: '1px solid #ffcdd2', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                   >
+                     Удалить
+                   </button>
+                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {adminScreen === 'lots' && (
         <AdminLots 
           adminLotsList={adminLotsList} adminActiveTab={adminActiveTab} 
@@ -269,13 +377,11 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
           setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} 
         />
       )}
-      {/* ⚡ НОВЫЙ ЭКРАН: Модерация профилей пользователей */}
       {adminScreen === 'profiles' && (
         <AdminProfiles 
           setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} 
         />
       )}
-      {/* Вызов модальных окон подробного просмотра лотов/отзывов */}
       {adminModal && renderAdminModal()} 
     </div>
   );
