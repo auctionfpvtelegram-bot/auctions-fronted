@@ -7,14 +7,12 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loadingPartner, setLoadingPartner] = useState(false);
-  
-  // ⚡ НОВЫЙ СТЕЙТ ДЛЯ ДИНАМИКИ: показывает либо список диалогов, либо сам чат
   const [isListVisible, setIsListVisible] = useState(true); 
-  
   const scrollRef = useRef(null);
 
+  // Исправленная и безопасная проверка аватарок
   const getAvatarSrc = (url) => {
-    if (!url || url === 'null' || url === 'undefined') return null;
+    if (!url || url === 'null' || url === 'undefined' || url === '') return null;
     return url.startsWith('http') || url.startsWith('data:') ? url : `${API_URL}/api/image/${url}`;
   };
 
@@ -30,7 +28,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
           const foundChat = filtered.find(c => c.users.some(u => u.id === targetIdAfterLoad));
           if (foundChat) {
             setActiveChat(foundChat);
-            setIsListVisible(false); // ⚡ Открываем чат на весь экран
+            setIsListVisible(false);
           }
         }
       }
@@ -59,7 +57,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
       
       if (existingChat) {
         setActiveChat(existingChat);
-        setIsListVisible(false); // ⚡ Прячем список
+        setIsListVisible(false);
       } else {
         const userRes = await fetch(`${API_URL}/api/users/${partnerId}/public`);
         const partnerData = await userRes.json();
@@ -80,7 +78,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
         };
         setActiveChat(virtualChat);
         setMessages([]);
-        setIsListVisible(false); // ⚡ Прячем список
+        setIsListVisible(false);
       }
     } catch (err) {
       console.error(err);
@@ -121,8 +119,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
         body: JSON.stringify({
           senderId: currentUser.id,
           receiverId: receiverId,
-          text: textToSend,
-          isSupport: activeChat.isSupport
+          text: textToSend
         })
       });
       const newMsg = await res.json();
@@ -146,7 +143,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   displayedChats.unshift({
     id: 'SUPPORT_CHAT',
     isSupport: true,
-    users: [currentUser, { id: '7688251487', customName: 'Служба заботы', firstName: 'Поддержка' }],
+    users: [currentUser, { id: '7688251487', customName: 'Поддержка', firstName: 'Поддержка' }],
     messages: []
   });
 
@@ -157,19 +154,13 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   }
 
-  // Получаем данные собеседника для шапки чата
   const activePartner = activeChat ? activeChat.users.find(u => u.id !== currentUser.id) : null;
 
   return (
     <div style={{ display: 'flex', width: '100%', height: 'calc(100vh - 60px)', background: '#f4f6f9', overflow: 'hidden' }}>
       
-      {/* 📁 МЕНЮ ДИАЛОГОВ (Показывается на 100% ширины, если isListVisible = true) */}
-      <div style={{ 
-        width: '100%', 
-        display: isListVisible ? 'flex' : 'none', 
-        flexDirection: 'column', 
-        background: '#fff' 
-      }}>
+      {/* 📁 СПИСОК ДИАЛОГОВ */}
+      <div style={{ width: '100%', display: isListVisible ? 'flex' : 'none', flexDirection: 'column', background: '#fff' }}>
         <div style={{ padding: '16px', borderBottom: '1px solid #eee', background: '#fff', zIndex: 10 }}>
           <h2 className="screen-title" style={{ margin: 0, fontSize: '18px' }}>Диалоги</h2>
         </div>
@@ -178,6 +169,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
           {displayedChats.map(chat => {
             const partner = chat.users.find(u => u.id !== currentUser.id) || {};
             const isSelected = activeChat?.id === chat.id;
+            const avatarUrlValid = getAvatarSrc(partner.avatarUrl);
             
             return (
               <div 
@@ -186,7 +178,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                 onClick={() => { 
                   setActiveChat(chat); 
                   if(setActiveChatPartnerId) setActiveChatPartnerId(null); 
-                  setIsListVisible(false); // ⚡ СКРЫВАЕМ СПИСОК ПРИ КЛИКЕ
+                  setIsListVisible(false); 
                 }}
                 style={{ 
                   margin: 0, borderRadius: 0, borderBottom: '1px solid #eee', 
@@ -196,14 +188,14 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               >
                 <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: chat.isSupport ? '#fff3e0' : '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
                   {chat.isSupport ? <div style={{ fontSize: '24px' }}>🎧</div> : 
-                   partner.avatarUrl ? <img src={getAvatarSrc(partner.avatarUrl)} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="avatar" /> : 
+                   avatarUrlValid ? <img src={avatarUrlValid} style={{width:'100%', height:'100%', objectFit:'cover'}} alt="avatar" /> : 
                    <div style={{ fontSize: '20px', color: '#78909c' }}>👤</div>}
                 </div>
                 
                 <div className="ticket-info" style={{ flex: 1, margin: 0, overflow: 'hidden' }}>
                   <h4 className="ticket-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 4px 0', fontSize: '15px' }}>
                     <span style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', color: chat.isSupport ? '#e65100' : '#111', fontWeight: 'bold' }}>
-                      {chat.isSupport ? 'Служба заботы' : (partner.customName || partner.firstName || 'Аноним')}
+                      {chat.isSupport ? 'Поддержка' : (partner.customName || partner.firstName || 'Аноним')}
                     </span>
                     {chat.isSupport && <span style={{ fontSize: '12px' }}>📌</span>}
                   </h4>
@@ -217,21 +209,14 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
         </div>
       </div>
 
-      {/* 💬 ОКНО ЧАТА (Показывается на 100% ширины, если isListVisible = false) */}
-      <div style={{ 
-        width: '100%', 
-        display: !isListVisible ? 'flex' : 'none', 
-        flexDirection: 'column', 
-        background: '#fff', 
-        position: 'relative' 
-      }}>
+      {/* 💬 ОКНО ЧАТА */}
+      <div style={{ width: '100%', display: !isListVisible ? 'flex' : 'none', flexDirection: 'column', background: '#fff', position: 'relative' }}>
         {loadingPartner ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>Загрузка диалога...</div>
         ) : activeChat ? (
           
           <div className="chat-container" style={{ height: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column' }}>
             
-            {/* 🌟 НОВАЯ ШАПКА ЧАТА С КНОПКОЙ НАЗАД И ID ПОЛЬЗОВАТЕЛЯ */}
             <div className="chat-header" style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', gap: '14px', borderBottom: '1px solid #eee' }}>
               <button 
                 onClick={() => setIsListVisible(true)} 
@@ -242,9 +227,8 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <h3 className="chat-title" style={{ margin: 0, fontSize: '16px', fontWeight: 'bold' }}>
-                  {activeChat.isSupport ? 'Служба заботы' : (activePartner?.customName || activePartner?.firstName || 'Пользователь')}
+                  {activeChat.isSupport ? 'Поддержка' : (activePartner?.customName || activePartner?.firstName || 'Пользователь')}
                 </h3>
-                {/* ⚡ ВЫВОДИМ ID ПОЛЬЗОВАТЕЛЯ */}
                 {!activeChat.isSupport && activePartner?.id && (
                   <span style={{ fontSize: '11px', color: '#888', fontFamily: 'monospace', marginTop: '2px' }}>
                     ID: {activePartner.id}
