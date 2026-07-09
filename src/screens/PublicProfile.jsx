@@ -28,18 +28,6 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
     return `${API_URL}/api/image/${url}`;
   };
 
-  // Обработчик кнопки Telegram с динамической ссылкой
-  const handleTelegramClick = () => {
-    if (publicProfileData.username) {
-      window.open(`https://t.me/${publicProfileData.username}`, '_blank');
-    } else {
-      setAlertData({
-        message: 'Пользователь не указал свой никнейм в Telegram',
-        onClose: () => {}
-      });
-    }
-  };
-
   // Функция для быстрой жалобы из чужого профиля
   const handleReport = () => {
     setAlertData({
@@ -111,14 +99,31 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
         </div>
       </div>
 
-      {/* Нативная кнопка Telegram */}
-      <div style={{ padding: '0 16px' }}>
+      {/* КНОПКИ СВЯЗИ В ПУБЛИЧНОМ ПРОФИЛЕ */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px', width: '100%', padding: '0 16px', boxSizing: 'border-box' }}>
+        
+        {/* Главная привлекательная кнопка мессенджера */}
         <button 
-          onClick={handleTelegramClick} 
-          style={{ background: '#3390ec', borderRadius: '10px', padding: '14px', color: '#fff', fontWeight: 'bold', width: '100%', border: 'none', cursor: 'pointer', fontSize: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
+          onClick={() => {
+            // Логика перехода в Messenger.jsx и авто-открытия чата с publicProfileData.id
+            setCurrentScreen('messenger'); 
+          }}
+          style={{ width: '100%', height: '50px', background: 'linear-gradient(135deg, #1976d2, #00c6ff)', color: '#fff', border: 'none', borderRadius: '14px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(25, 118, 210, 0.3)' }}
         >
-          💬 Написать в Telegram
+          <span>💬</span> Написать в приложении
         </button>
+
+        {/* Вторичная (скромная) кнопка Telegram */}
+        {publicProfileData?.username && (
+          <a 
+            href={`https://t.me/${publicProfileData.username}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ width: '100%', height: '44px', background: '#f5f5f5', color: '#555', border: '1px solid #e0e0e0', borderRadius: '12px', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textDecoration: 'none', boxSizing: 'border-box' }}
+          >
+            ✈️ Написать в Telegram
+          </a>
+        )}
       </div>
 
       {/* Блок отзывов */}
