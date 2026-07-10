@@ -8,17 +8,16 @@ function AddLot({ setCurrentScreen, currentUser }) {
   const [lotLocation, setLotLocation] = useState('');
   const [lotPrice, setLotPrice] = useState('');
   const [lotDuration, setLotDuration] = useState('24');
-  
   const [isLoading, setIsLoading] = useState(false);
   const [alertData, setAlertData] = useState(null);
 
   const categories = ['Все', 'Беспилотник', 'Аккумуляторы', 'Пульты', 'Очки/Шлемы', 'Запчасти', 'Прочее'];
 
-  const isFormValid = 
-    lotTitle.trim() !== '' && 
-    lotCategory !== '' && 
-    lotDescription.trim() !== '' && 
-    lotLocation.trim() !== '' && 
+  const isFormValid =
+    lotTitle.trim() !== '' &&
+    lotCategory !== '' &&
+    lotDescription.trim() !== '' &&
+    lotLocation.trim() !== '' &&
     lotPrice.trim() !== '';
 
   const handleCreateLot = () => {
@@ -65,11 +64,6 @@ function AddLot({ setCurrentScreen, currentUser }) {
 
   return (
     <>
-      <div className="screen-header">
-        <button className="back-btn" onClick={() => setCurrentScreen('home')}>{'<'}</button>
-        <h2 className="screen-title"></h2>
-      </div>
-      
       <div style={{ background: '#e8f5e9', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', color: '#2e7d32', lineHeight: '1.4' }}>
         ℹ️ <b>Шаг 1 из 2:</b> Заполните описание. Фотографии вы прикрепите следом в чате с ботом!
       </div>
@@ -96,7 +90,7 @@ function AddLot({ setCurrentScreen, currentUser }) {
         <label className="form-label">Местоположение <span>*</span></label>
         <input type="text" className="input-field" value={lotLocation} onChange={e => setLotLocation(e.target.value)} placeholder="Город отправки" />
       </div>
-      
+
       <div className="form-group">
         <label className="form-label">Время торгов <span>*</span></label>
         <select className="select-field" value={lotDuration} onChange={e => setLotDuration(e.target.value)}>
@@ -118,7 +112,7 @@ function AddLot({ setCurrentScreen, currentUser }) {
           Стартовая цена торгов: {lotPrice ? Math.ceil(parseInt(lotPrice, 10) * 0.1).toLocaleString('ru-RU') : 0} ₽ (10%)
         </span>
       </div>
-      
+
       <button 
         className="submit-btn" 
         disabled={!isFormValid || isLoading} 
