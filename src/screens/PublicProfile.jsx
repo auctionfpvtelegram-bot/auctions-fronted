@@ -38,6 +38,11 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
 
   return (
     <div className="app-container" style={{ background: '#f5f5f5', minHeight: '100vh', paddingBottom: '20px' }}>
+      {/* Шапка */}
+      <div style={{ background: '#fff', borderBottom: '1px solid #eee', padding: '16px', margin: '-16px -16px 16px -16px', display: 'flex', alignItems: 'center' }}>
+        <button onClick={() => setCurrentScreen(publicProfileReferrer)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', paddingRight: '16px', color: '#111' }}>{'<'}</button>
+        <h2 style={{ margin: 0, fontSize: '18px', color: '#111' }}>Профиль пользователя</h2>
+      </div>
 
       {/* ⚡ НОВАЯ КАРТОЧКА ПРОФИЛЯ С АВАТАРКОЙ, ИМЕНЕМ И ID */}
       <div className="public-profile-card" style={{ textAlign: 'center', padding: '24px 16px', background: '#fff', borderRadius: '16px', margin: '16px' }}>
@@ -46,7 +51,7 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
           <img 
             src={getAvatarSrc(publicProfileData.avatarUrl)} 
             alt="avatar" 
-            style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #1976d2', marginBottom: '12px' }} 
+            style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginBottom: '12px' }} 
           />
         ) : (
           <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', margin: '0 auto 12px auto' }}>👤</div>
@@ -133,7 +138,10 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
 
       {/* Блок отзывов */}
       <div style={{ marginTop: '32px', padding: '0 16px' }}>
-        <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#111' }}>Отзывы ({reviewCount})</h3>
+        <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#111', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Отзывы</span>
+          <span style={{ background: '#eee', padding: '2px 8px', borderRadius: '12px', fontSize: '14px', color: '#666' }}>{reviewCount}</span>
+        </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {reviewCount > 0 ? (
             publicProfileData.reviews.map((rev) => {

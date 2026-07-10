@@ -3,12 +3,9 @@ import { API_URL } from '../config';
 
 function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isFavorite, toggleFavorite, handleOpenPublicProfile }) {
   const [photoIndex, setPhotoIndex] = useState(0);
-
   const isWinner = selectedLot?.bids?.[0]?.userId === currentUser.id;
   const isSeller = selectedLot?.sellerId === currentUser.id;
   const canReview = isWinner || isSeller;
-
-  // Ищем отзыв текущего пользователя, чтобы показать его статус
   const userReview = selectedLot?.reviews?.find(r => r.authorId === currentUser.id);
 
   // ⚡ Умная функция для получения ссылки на аватарку
@@ -23,88 +20,57 @@ function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isFavorite, 
 
   return (
     <div style={{ padding: '0 16px', paddingBottom: '40px' }}>
-      {/* ГАЛЕРЕЯ ФОТОГРАФИЙ */}
-      <div style={{ position: 'relative', width: '100%', height: '240px', background: '#f1f5f9', borderRadius: '16px', overflow: 'hidden', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+      {/* ⚡ БЛОК КАРТИНКИ С ЛАЙКОМ ВНУТРИ (без старой шапки) */}
+      <div className="lot-image-large" style={{ background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '60px', height: '240px', borderRadius: '12px', overflow: 'hidden', position: 'relative', marginTop: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
         {selectedLot?.photos && selectedLot.photos.length > 0 ? (
-          <>
-            <img
-              src={selectedLot.photos[photoIndex].startsWith('http') ? selectedLot.photos[photoIndex] : `${API_URL}/api/image/${selectedLot.photos[photoIndex]}`}
-              alt="lot"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-            {selectedLot.photos.length > 1 && (
-              <div style={{ position: 'absolute', bottom: '12px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '6px' }}>
-                {selectedLot.photos.map((_, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => setPhotoIndex(idx)}
-                    style={{ width: '8px', height: '8px', borderRadius: '50%', background: idx === photoIndex ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: '0.2s' }}
-                  />
-                ))}
-              </div>
-            )}
-          </>
+          <img src={getAvatarSrc(selectedLot.photos[0])} alt="lot" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', color: '#94a3b8' }}>🚁</div>
+          '🚁'
         )}
-
-        {/* ИКОНКА ИЗБРАННОГО НАД ФОТО */}
-        <div
-          onClick={() => toggleFavorite(selectedLot)}
-          style={{ position: 'absolute', top: '12px', right: '12px', background: '#fff', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}
+        <div 
+          style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(255,255,255,0.9)', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }} 
+          onClick={(e) => { e.stopPropagation(); toggleFavorite(selectedLot); }}
         >
           {isFavorite ? '❤️' : '♡'}
         </div>
-
-        {/* БЕЙДЖ СТАТУСА */}
         <span style={{ position: 'absolute', top: '12px', left: '12px', background: '#64748b', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
           🏁 Торги завершены
         </span>
       </div>
 
       {/* ЗАГОЛОВОК И ОПИСАНИЕ ЛОТА */}
-      <div style={{ background: '#fff', borderRadius: '16px', padding: '16px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+      <div style={{ background: '#fff', borderRadius: '16px', padding: '16px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginTop: '16px' }}>
         <h1 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 'bold', color: '#0f172a', lineHeight: '1.3' }}>{selectedLot?.title}</h1>
         <p style={{ margin: 0, fontSize: '14px', color: '#475569', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{selectedLot?.description}</p>
       </div>
 
-      {/* КАРТОЧКА ПРОДАВЦА */}
-      <div
-        onClick={() => handleOpenPublicProfile(selectedLot?.sellerId, 'completedLot')}
-        style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', background: '#fff', borderRadius: '16px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}
-      >
+      {/* ⚡ ОБНОВЛЕННАЯ КАРТОЧКА ПРОДАВЦА С АВАТАРКОЙ И РЕЙТИНГОМ */}
+      <div className="seller-info" onClick={() => handleOpenPublicProfile(selectedLot?.sellerId, 'completedLot')} style={{ cursor: 'pointer', background: '#fff', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #eee', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         {selectedLot?.seller?.avatarUrl ? (
-          <img
-            src={getAvatarSrc(selectedLot.seller.avatarUrl)}
-            alt="seller avatar"
-            style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-          />
+          <img src={getAvatarSrc(selectedLot.seller.avatarUrl)} alt="seller avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
         ) : (
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>👤</div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>👤</div>
         )}
         <div style={{ flex: 1 }}>
-          <p style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#0f172a' }}>{sellerName}</p>
-          <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Продавец лота</p>
+          <p style={{ margin: 0, fontWeight: 'bold', fontSize: '15px', color: '#111' }}>{sellerName}</p>
+          <p style={{ margin: 0, fontSize: '12px', color: '#888' }}>Продавец лота</p>
         </div>
-        <div style={{ background: '#fef3c7', color: '#d97706', padding: '4px 8px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}>
+        <div style={{ background: '#fff9c4', color: '#d97706', padding: '4px 8px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}>
           ⭐ {selectedLot?.seller?.rating > 0 ? selectedLot.seller.rating.toFixed(1) : '0.0'}
         </div>
       </div>
 
-      {/* ХАРАКТЕРИСТИКИ */}
-      <div style={{ background: '#fff', borderRadius: '16px', padding: '16px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-          <span style={{ color: '#64748b' }}>Категория:</span>
-          <span style={{ fontWeight: '600', color: '#334155' }}>{selectedLot?.category || 'Разное'}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-          <span style={{ color: '#64748b' }}>Локация:</span>
-          <span style={{ fontWeight: '600', color: '#334155' }}>📍 {selectedLot?.location}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-          <span style={{ color: '#64748b' }}>Финальная цена:</span>
-          <span style={{ fontWeight: 'bold', color: '#16a34a', fontSize: '15px' }}>{selectedLot?.currentPrice?.toLocaleString('ru-RU')} ₽</span>
-        </div>
+      {/* ⚡ ОБНОВЛЕННЫЙ БЛОК ХАРАКТЕРИСТИК */}
+      <div className="lot-info-box" style={{ background: '#f9f9f9', padding: '16px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #f0f0f0' }}>
+        <p className="info-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+          <span style={{ color: '#666' }}>Категория:</span> <strong>{selectedLot?.category || 'Разное'}</strong>
+        </p>
+        <p className="info-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+          <span style={{ color: '#666' }}>Локация:</span> <strong>📍 {selectedLot?.location}</strong>
+        </p>
+        <p className="info-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+          <span style={{ color: '#666' }}>Финальная цена:</span> <strong style={{ color: '#16a34a', fontSize: '16px' }}>{selectedLot?.currentPrice?.toLocaleString('ru-RU')} ₽</strong>
+        </p>
       </div>
 
       {/* БЛОК ПОБЕДИТЕЛЯ ТОРГОВ */}
@@ -145,8 +111,8 @@ function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isFavorite, 
 
       {/* ОСТАВИТЬ ОТЗЫВ ПАРТНЕРУ */}
       {canReview && !userReview && (
-        <button
-          className="btn-review"
+        <button 
+          className="btn-review" 
           onClick={() => setCurrentScreen('writeReview')}
           style={{ width: '100%', height: '48px', background: '#ffcc00', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(255,204,0,0.2)' }}
         >
