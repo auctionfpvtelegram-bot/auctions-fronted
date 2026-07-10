@@ -15,7 +15,6 @@ import WriteReview from './screens/WriteReview';
 import TicketHistory from './screens/TicketHistory';
 import NotificationsPanel from './screens/NotificationsPanel';
 import Messenger from './screens/Messenger';
-import FAQ from './screens/FAQ'; // ⚡ ИМПОРТ НОВОГО ЭКРАНА F.A.Q.
 
 // ⚡ Получаем данные Telegram мгновенно, до рендера, чтобы избежать лагов интерфейса
 const getInitialTelegramUser = () => {
@@ -49,11 +48,15 @@ function App() {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [globalBanner, setGlobalBanner] = useState({ isBannerOn: false, bannerText: '', bannerLink: '' });
 
+  // ⚡ НОВЫЙ СТЕЙТ: ID собеседника для авто-открытия чата в мессенджере
   const [activeChatPartnerId, setActiveChatPartnerId] = useState(null);
+
+  // ⚡ Мгновенная инициализация ID пользователя (Кнопки докбара прогрузятся СРАЗУ)
   const [currentUser, setCurrentUser] = useState(getInitialTelegramUser());
 
   const isAdmin = String(currentUser.id) === '7688251487';
 
+  // ⚡ ИСПРАВЛЕННАЯ ФУНКЦИЯ: Теперь передает полный объект Telegram, бэкенд не будет падать в ошибку
   const refreshCurrentUser = () => {
     const tg = window.Telegram?.WebApp;
     const tgUser = tg?.initDataUnsafe?.user || { id: '7688251487', username: 'neffec', first_name: 'Admin' };
@@ -163,13 +166,12 @@ function App() {
       case 'writeReview': return 'Оставить отзыв';
       case 'ticketHistory': return 'Поддержка';
       case 'messenger': return 'Сообщения';
-      case 'faq': return 'Частые вопросы'; // ⚡ ЗАГОЛОВОК ДЛЯ F.A.Q.
       default: return 'Аукцион';
     }
   };
 
   const handleBackClick = () => {
-    if (['activeLot', 'completedLot', 'rejectedLot', 'publicProfile', 'ticketHistory', 'settings', 'adminDashboard', 'feedback', 'messenger', 'faq'].includes(currentScreen)) {
+    if (['activeLot', 'completedLot', 'rejectedLot', 'publicProfile', 'ticketHistory', 'settings', 'adminDashboard', 'feedback', 'messenger'].includes(currentScreen)) {
       setCurrentScreen('profile');
     } else if (currentScreen === 'writeReview') {
       setCurrentScreen('completedLot');
@@ -180,6 +182,7 @@ function App() {
 
   return (
     <div className="app-container" style={{ paddingTop: globalBanner.isBannerOn ? '100px' : '60px' }}>
+      {/* ⚡ ГЛОБАЛЬНЫЙ БАННЕР */}
       {globalBanner.isBannerOn && (
         <div
           onClick={() => {
@@ -200,6 +203,7 @@ function App() {
         </div>
       )}
 
+      {/* ⚡ ГЛОБАЛЬНЫЙ ДОКБАР */}
       <div style={{
         position: 'fixed', top: globalBanner.isBannerOn ? '40px' : '0', left: 0, width: '100%',
         background: '#fff', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -212,8 +216,10 @@ function App() {
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{getPageTitle()}</h2>
         </div>
 
+        {/* Кнопки теперь рендерятся мгновенно, так как id заполнен сразу */}
         {currentUser.id && currentScreen !== 'adminDashboard' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* ⚡ НОВАЯ КНОПКА МЕССЕНДЖЕРА */}
             <div
               style={{ position: 'relative', cursor: 'pointer', fontSize: '22px', display: 'flex', alignItems: 'center' }}
               onClick={() => setCurrentScreen('messenger')}
@@ -221,6 +227,7 @@ function App() {
               💬
             </div>
 
+            {/* Колокольчик уведомлений */}
             <div
               style={{ position: 'relative', cursor: 'pointer', fontSize: '22px', display: 'flex', alignItems: 'center' }}
               onClick={() => setIsNotifOpen(true)}
@@ -233,6 +240,7 @@ function App() {
               )}
             </div>
 
+            {/* Иконка профиля */}
             <div
               style={{ cursor: 'pointer', fontSize: '22px', display: 'flex', alignItems: 'center' }}
               onClick={() => setCurrentScreen('profile')}
@@ -244,7 +252,18 @@ function App() {
       </div>
 
       {isNotifOpen && (
-        <NotificationsPanel notifications={notifications} userId={currentUser.id} onClose={() => setIsNotifOpen(false)} onRead={() => setNotifications(notifications.map(n => ({...n, isRead: true})))} />
+        <NotificationsPanel
+          notifications={notifications}
+          userId={currentUser.id}
+          onClose={() => setIsNotifOpen(false)}
+          onRead={(id) => {
+            if (id === 'ALL') {
+              setNotifications(notifications.map(n => ({...n, isRead: true})));
+            } else {
+              setNotifications(notifications.map(n => n.id === id ? {...n, isRead: true} : n));
+            }
+          }}
+        />
       )}
 
       {currentScreen === 'home' && <Home setCurrentScreen={setCurrentScreen} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} isAdmin={isAdmin} />}
@@ -264,20 +283,18 @@ function App() {
       {currentScreen === 'feedback' && <Feedback setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
       {currentScreen === 'publicProfile' && <PublicProfile setCurrentScreen={setCurrentScreen} currentUser={currentUser} publicProfileData={publicProfileData} referrer={publicProfileReferrer} setActiveChatPartnerId={setActiveChatPartnerId} />}
       {currentScreen === 'rejectedLot' && <RejectedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} lot={selectedLot} setAlertData={setAlertData} />}
+      {/* Передаем исправленный метод фонового обновления данных */}
       {currentScreen === 'settings' && <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} refreshCurrentUser={refreshCurrentUser} />}
       {currentScreen === 'writeReview' && <WriteReview setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} setAlertData={setAlertData} />}
       {currentScreen === 'ticketHistory' && <TicketHistory setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
-      
-      {/* ⚡ РЕНДЕР ЭКРАНА FAQ */}
-      {currentScreen === 'faq' && <FAQ setCurrentScreen={setCurrentScreen} />}
 
+      {/* ⚡ НОВЫЙ ЭКРАН: Мессенджер с передачей ID собеседника */}
       {currentScreen === 'messenger' && (
         <Messenger
           setCurrentScreen={setCurrentScreen}
           currentUser={currentUser}
           activeChatPartnerId={activeChatPartnerId}
           setActiveChatPartnerId={setActiveChatPartnerId}
-          handleOpenPublicProfile={handleOpenPublicProfile}
         />
       )}
     </div>
