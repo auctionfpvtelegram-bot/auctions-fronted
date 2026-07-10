@@ -38,11 +38,7 @@ function PublicProfile({ setCurrentScreen, publicProfileData, publicProfileRefer
 
   return (
     <div className="app-container" style={{ background: '#f5f5f5', minHeight: '100vh', paddingBottom: '20px' }}>
-      {/* Шапка */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #eee', padding: '16px', margin: '-16px -16px 16px -16px', display: 'flex', alignItems: 'center' }}>
-        <button onClick={() => setCurrentScreen(publicProfileReferrer)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', paddingRight: '16px', color: '#111' }}>{'<'}</button>
-        <h2 style={{ margin: 0, fontSize: '18px', color: '#111' }}>Профиль пользователя</h2>
-      </div>
+      {/* Шапка полностью удалена */}
 
       {/* ⚡ НОВАЯ КАРТОЧКА ПРОФИЛЯ С АВАТАРКОЙ, ИМЕНЕМ И ID */}
       <div className="public-profile-card" style={{ textAlign: 'center', padding: '24px 16px', background: '#fff', borderRadius: '16px', margin: '16px' }}>

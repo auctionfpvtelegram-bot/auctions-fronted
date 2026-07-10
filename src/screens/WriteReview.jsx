@@ -42,10 +42,7 @@ function WriteReview({ setCurrentScreen, selectedLot, currentUser, setAlertData 
 
   return (
     <div className="app-container">
-      <div className="screen-header">
-        <button className="back-btn" onClick={() => setCurrentScreen('completedLot')}>{'<'}</button>
-        <h2 className="screen-title">Оставить отзыв {targetText}</h2>
-      </div>
+      {/* Блок screen-header полностью удалён */}
       
       <div style={{ textAlign: 'center', padding: '24px 16px' }}>
         <h3 style={{ margin: '0 0 4px 0' }}>Пользователю ID: {targetId}</h3>
