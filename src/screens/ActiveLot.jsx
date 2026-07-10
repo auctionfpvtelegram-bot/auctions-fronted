@@ -147,10 +147,10 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
 
   return (
     <>
-      {/* 📸 СЛАЙДЕР ФОТОГРАФИЙ (Кнопка Назад убрана, осталось только Избранное) */}
+      {/* 📸 СЛАЙДЕР ФОТОГРАФИЙ */}
       <div className="lot-image-large" style={{ position: 'relative', background: '#f0f0f0', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', fontSize: '60px', overflow: 'hidden' }}>
         
-        {/* 🌟 Кнопка избранного (парит поверх фото справа) */}
+        {/* 🌟 Кнопка избранного */}
         <button 
           onClick={(e) => { e.stopPropagation(); toggleFavorite(localLot); }}
           style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, fontSize: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
@@ -187,6 +187,34 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         ) : '🚁'}
       </div>
 
+      {/* ⚡ НОВЫЙ БЛОК МИНИАТЮР (исправляем дублирование) */}
+      {localLot.photos && localLot.photos.length > 1 && (
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '8px 0', marginTop: '8px' }}>
+          {localLot.photos.map((photo, index) => (
+            <div 
+              key={index} 
+              onClick={() => setPhotoIndex(index)}
+              style={{ 
+                width: '60px', 
+                height: '60px', 
+                flexShrink: 0, 
+                borderRadius: '8px', 
+                overflow: 'hidden', 
+                cursor: 'pointer',
+                border: index === photoIndex ? '2px solid #ffcc00' : '2px solid transparent',
+                opacity: index === photoIndex ? 1 : 0.6
+              }}
+            >
+              <img 
+                src={getAvatarSrc(photo)} 
+                alt={`Фото ${index + 1}`} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{ marginTop: '12px', marginBottom: '8px' }}>
         {localLot.category && <span className="tag-category" style={{marginRight: '8px'}}>{localLot.category}</span>}
         <span className="lot-id-text">Лот #{localLot.id}</span>
@@ -218,14 +246,12 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
       {/* 🌟 КАРТОЧКА ПРОДАВЦА */}
       <div className="lot-section seller-block" style={{ marginBottom: '16px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px' }} onClick={() => handleOpenPublicProfile(localLot.sellerId, 'activeLot')}>
         
-        {/* Аватарка с легкой тенью */}
         <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
           {seller.avatarUrl && getAvatarSrc(seller.avatarUrl) ? (
             <img src={getAvatarSrc(seller.avatarUrl)} alt="seller" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : '👤'}
         </div>
         
-        {/* Ник и рейтинг */}
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
           <span className="seller-username" style={{ margin: 0, padding: 0, fontWeight: 'bold', fontSize: '15px', lineHeight: '1.2', color: '#111' }}>
             {seller.customName || seller.firstName || seller.username || 'Аноним'}
@@ -235,7 +261,6 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
           </span>
         </div>
 
-        {/* Стикер Продавец */}
         <span style={{ background: '#e3f2fd', color: '#0d47a1', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', flexShrink: 0 }}>
           Продавец
         </span>
@@ -264,7 +289,6 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
                   : { display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '10px 4px', borderBottom: '1px solid #eee', alignItems: 'center' }
                 }
               >
-                {/* Левая часть */}
                 <div className="bid-user-info" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }} onClick={() => handleOpenPublicProfile(bid.userId, 'activeLot')}>
                   <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', cursor: 'pointer' }}>
                     {bidUser.avatarUrl && getAvatarSrc(bidUser.avatarUrl) ? <img src={getAvatarSrc(bidUser.avatarUrl)} alt="bidder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
@@ -273,7 +297,6 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
                     {bidUser.customName || bidUser.firstName || bidUser.username || 'Аноним'} {isWinner && <span style={{marginLeft: '4px'}}>🏆</span>}
                   </span>
                 </div>
-                {/* Правая часть: Цена */}
                 <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                   <span className="bid-amount" style={{ fontWeight: 'bold', fontSize: '15px', color: isWinner ? '#2e7d32' : '#111' }}>
                     {bid.amount.toLocaleString('ru-RU')} ₽
