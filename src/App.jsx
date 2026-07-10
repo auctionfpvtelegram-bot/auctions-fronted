@@ -15,7 +15,6 @@ import WriteReview from './screens/WriteReview';
 import TicketHistory from './screens/TicketHistory';
 import NotificationsPanel from './screens/NotificationsPanel';
 import Messenger from './screens/Messenger';
-import FAQ from './screens/FAQ'; // ⚡ ИМПОРТ FAQ ДОБАВЛЕН
 
 // ⚡ Получаем данные Telegram мгновенно, до рендера, чтобы избежать лагов интерфейса
 const getInitialTelegramUser = () => {
@@ -40,175 +39,262 @@ const getInitialTelegramUser = () => {
 function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
   const [selectedLot, setSelectedLot] = useState(null);
-  const [currentUser, setCurrentUser] = useState(getInitialTelegramUser());
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [alertData, setAlertData] = useState(null);
+  const [favoriteLots, setFavoriteLots] = useState([]);
   const [publicProfileData, setPublicProfileData] = useState(null);
-  const [publicProfileReferrer, setPublicProfileReferrer] = useState(null);
-  const [activeChatPartnerId, setActiveChatPartnerId] = useState(null);
-
+  const [publicProfileReferrer, setPublicProfileReferrer] = useState('home');
+  const [alertData, setAlertData] = useState(null);
+  const [confirmData, setConfirmData] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const [globalBanner, setGlobalBanner] = useState({ isBannerOn: false, bannerText: '', bannerLink: '' });
 
-  // ⚡ Загружаем полные данные юзера с бэкенда в фоновом режиме
+  // ⚡ НОВЫЙ СТЕЙТ: ID собеседника для авто-открытия чата в мессенджере
+  const [activeChatPartnerId, setActiveChatPartnerId] = useState(null);
+
+  // ⚡ Мгновенная инициализация ID пользователя (Кнопки докбара прогрузятся СРАЗУ)
+  const [currentUser, setCurrentUser] = useState(getInitialTelegramUser());
+
+  const isAdmin = String(currentUser.id) === '7688251487';
+
+  // ⚡ ИСПРАВЛЕННАЯ ФУНКЦИЯ: Теперь передает полный объект Telegram, бэкенд не будет падать в ошибку
   const refreshCurrentUser = () => {
-    fetch(`${API_URL}/api/users/${currentUser.id}/public`)
+    const tg = window.Telegram?.WebApp;
+    const tgUser = tg?.initDataUnsafe?.user || { id: '7688251487', username: 'neffec', first_name: 'Admin' };
+    fetch(`${API_URL}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tgUser)
+    })
       .then(res => res.json())
       .then(data => {
-        if (!data.error) {
+        const user = data.user || data;
+        if (user && !user.error) {
           setCurrentUser(prev => ({
             ...prev,
-            rating: data.rating || prev.rating,
-            customName: data.customName || prev.customName,
-            avatarUrl: data.avatarUrl || prev.avatarUrl,
-            profileStatus: data.profileStatus || prev.profileStatus,
-            profileRejectReason: data.profileRejectReason || prev.profileRejectReason,
-            isBanned: data.isBanned || false,
-            banReason: data.banReason || null,
-            banScope: data.banScope || null,
-            banUntil: data.banUntil || null
+            customName: user.customName,
+            avatarUrl: user.avatarUrl,
+            profileStatus: user.profileStatus || 'APPROVED',
+            profileRejectReason: user.profileRejectReason
           }));
         }
       })
-      .catch(err => console.error("Ошибка обновления юзера:", err));
+      .catch(() => {});
   };
 
-  useEffect(() => {
-    fetch(`${API_URL}/api/admin/check`, {
+  const handleError = (errorText, location = 'App.jsx') => {
+    setAlertData({ message: `❌ Произошла ошибка:\n${errorText}` });
+    fetch(`${API_URL}/api/log-error`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser.id })
-    })
-      .then(res => res.json())
-      .then(data => setIsAdmin(data.isAdmin))
-      .catch(() => setIsAdmin(false));
-
-    refreshCurrentUser();
-  }, [currentUser.id]);
-
-  useEffect(() => {
-    const fetchNotifs = () => {
-      fetch(`${API_URL}/api/users/${currentUser.id}/notifications`)
-        .then(res => res.json())
-        .then(data => setNotifications(Array.isArray(data) ? data : []))
-        .catch(() => {});
-    };
-    fetchNotifs();
-    const interval = setInterval(fetchNotifs, 10000);
-    return () => clearInterval(interval);
-  }, [currentUser.id]);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [currentScreen]);
-
-  const [favoriteLots, setFavoriteLots] = useState(() => {
-    const saved = localStorage.getItem('fpv_favorites');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const toggleFavorite = (lot) => {
-    let updated;
-    if (favoriteLots.some(f => f.id === lot.id)) {
-      updated = favoriteLots.filter(f => f.id !== lot.id);
-    } else {
-      updated = [...favoriteLots, lot];
-    }
-    setFavoriteLots(updated);
-    localStorage.setItem('fpv_favorites', JSON.stringify(updated));
+      body: JSON.stringify({ errorText: String(errorText), userId: currentUser.id || 'До авторизации', location })
+    }).catch(() => {});
   };
 
-  const handleOpenPublicProfile = (userId, referrer) => {
-    fetch(`${API_URL}/api/users/${userId}/public`)
+  const toggleFavorite = (lot) => {
+    setFavoriteLots(prev => {
+      if (prev.some(fav => fav.id === lot.id)) return prev.filter(fav => fav.id !== lot.id);
+      return [...prev, lot];
+    });
+  };
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => setGlobalBanner(data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (tg) { tg.ready(); tg.expand(); }
+    const tgUser = tg?.initDataUnsafe?.user || { id: '7688251487', username: 'neffec', first_name: 'Admin' };
+    fetch(`${API_URL}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tgUser)
+    })
       .then(res => res.json())
       .then(data => {
-        setPublicProfileData(data);
-        setPublicProfileReferrer(referrer);
-        setCurrentScreen('publicProfile');
+        const user = data.user || data;
+        setCurrentUser({
+          id: String(user.id), firstName: user.firstName || 'Гость', rating: user.rating || 0.0,
+          dealsCount: user.dealsCount || 0, isBanned: user.isBanned, banReason: user.banReason,
+          banScope: user.banScope, banUntil: user.banUntil,
+          customName: user.customName,
+          avatarUrl: user.avatarUrl,
+          profileStatus: user.profileStatus || 'APPROVED',
+          profileRejectReason: user.profileRejectReason
+        });
+        if (data.favoriteLots) setFavoriteLots(data.favoriteLots);
+        if (data.notifications) setNotifications(data.notifications);
       })
-      .catch(err => {
-        console.error(err);
-        setAlertData({ message: 'Ошибка при загрузке профиля' });
-      });
+      .catch(err => handleError(err.message, 'Авторизация'));
+  }, []);
+
+  useEffect(() => {
+    if (currentUser.id) {
+      const fetchNotifs = () => fetch(`${API_URL}/api/users/${currentUser.id}/notifications`).then(res => res.json()).then(data => setNotifications(Array.isArray(data) ? data : []));
+      fetchNotifs();
+      const interval = setInterval(fetchNotifs, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser.id]);
+
+  const handleOpenPublicProfile = (userId, referrer) => {
+    if (!userId) return;
+    setPublicProfileReferrer(referrer);
+    fetch(`${API_URL}/api/users/${userId}/public?t=${Date.now()}`)
+      .then(res => res.json())
+      .then(data => { setPublicProfileData(data); setCurrentScreen('publicProfile'); })
+      .catch(err => handleError(err.message, 'Загрузка профиля'));
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const getPageTitle = () => {
+    switch(currentScreen) {
+      case 'home': return 'Аукционы дронов';
+      case 'profile': return 'Личный кабинет';
+      case 'activeLot': return `Лот #${selectedLot?.id || ''}`;
+      case 'addLot': return 'Создание лота';
+      case 'adminDashboard': return 'Панель модератора';
+      case 'completedLot': return 'Завершенный лот';
+      case 'feedback': return 'Новое обращение';
+      case 'publicProfile': return 'Профиль пользователя';
+      case 'rejectedLot': return 'Отклоненный лот';
+      case 'settings': return 'Настройки';
+      case 'writeReview': return 'Оставить отзыв';
+      case 'ticketHistory': return 'Поддержка';
+      case 'messenger': return 'Сообщения';
+      default: return 'Аукцион';
+    }
+  };
+
+  const handleBackClick = () => {
+    if (['activeLot', 'completedLot', 'rejectedLot', 'publicProfile', 'ticketHistory', 'settings', 'adminDashboard', 'feedback', 'messenger'].includes(currentScreen)) {
+      setCurrentScreen('profile');
+    } else if (currentScreen === 'writeReview') {
+      setCurrentScreen('completedLot');
+    } else {
+      setCurrentScreen('home');
+    }
   };
 
   return (
-    <div className="App">
-      {/* ГЛОБАЛЬНЫЙ БАР НАВИГАЦИИ (Виден всегда) */}
-      <div className="top-nav-bar" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '60px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', zIndex: 100 }}>
-        
-        {/* Логотип */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setCurrentScreen('home')}>
-          <div style={{ background: '#ffcc00', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🚁</div>
-          <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#111', letterSpacing: '-0.5px' }}>Аукцион</span>
+    <div className="app-container" style={{ paddingTop: globalBanner.isBannerOn ? '100px' : '60px' }}>
+      {/* ⚡ ГЛОБАЛЬНЫЙ БАННЕР */}
+      {globalBanner.isBannerOn && (
+        <div
+          onClick={() => {
+            if (globalBanner.bannerLink) {
+              window.Telegram?.WebApp?.openLink(globalBanner.bannerLink) || window.open(globalBanner.bannerLink, '_blank');
+            }
+          }}
+          style={{
+            position: 'fixed', top: 0, left: 0, width: '100%', background: '#ff9800', color: '#fff',
+            padding: '10px 16px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold',
+            zIndex: 1000, boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            cursor: globalBanner.bannerLink ? 'pointer' : 'default',
+            boxSizing: 'border-box'
+          }}
+        >
+          📢 {globalBanner.bannerText}
+          {globalBanner.bannerLink && <span style={{ textDecoration: 'underline', marginLeft: '6px' }}>(Перейти)</span>}
+        </div>
+      )}
+
+      {/* ⚡ ГЛОБАЛЬНЫЙ ДОКБАР */}
+      <div style={{
+        position: 'fixed', top: globalBanner.isBannerOn ? '40px' : '0', left: 0, width: '100%',
+        background: '#fff', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', zIndex: 999, boxSizing: 'border-box'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {currentScreen !== 'home' && (
+            <button onClick={handleBackClick} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', padding: '0 8px 0 0', color: '#111', lineHeight: 1 }}>{'<'}</button>
+          )}
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{getPageTitle()}</h2>
         </div>
 
-        {/* Правые иконки */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          
-          <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setCurrentScreen('messenger')}>
-            <span style={{ fontSize: '24px', color: currentScreen === 'messenger' ? '#ffcc00' : '#333' }}>💬</span>
-          </div>
+        {/* Кнопки теперь рендерятся мгновенно, так как id заполнен сразу */}
+        {currentUser.id && currentScreen !== 'adminDashboard' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* ⚡ НОВАЯ КНОПКА МЕССЕНДЖЕРА */}
+            <div
+              style={{ position: 'relative', cursor: 'pointer', fontSize: '22px', display: 'flex', alignItems: 'center' }}
+              onClick={() => setCurrentScreen('messenger')}
+            >
+              💬
+            </div>
 
-          <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setIsNotifOpen(true)}>
-            <span style={{ fontSize: '24px', color: '#333' }}>🔔</span>
-            {unreadCount > 0 && (
-              <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#e53935', color: '#fff', fontSize: '10px', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
+            {/* Колокольчик уведомлений */}
+            <div
+              style={{ position: 'relative', cursor: 'pointer', fontSize: '22px', display: 'flex', alignItems: 'center' }}
+              onClick={() => setIsNotifOpen(true)}
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#c62828', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+
+            {/* Иконка профиля */}
+            <div
+              style={{ cursor: 'pointer', fontSize: '22px', display: 'flex', alignItems: 'center' }}
+              onClick={() => setCurrentScreen('profile')}
+            >
+              👤
+            </div>
           </div>
-          
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: currentScreen === 'profile' ? '#ffcc00' : '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.2s', border: currentScreen === 'profile' ? '2px solid #ffcc00' : '2px solid transparent' }} onClick={() => setCurrentScreen('profile')}>
-            <span style={{ fontSize: '18px' }}>👤</span>
-          </div>
-        </div>
+        )}
       </div>
 
       {isNotifOpen && (
-        <NotificationsPanel 
-          notifications={notifications} 
-          onClose={() => setIsNotifOpen(false)} 
+        <NotificationsPanel
+          notifications={notifications}
           userId={currentUser.id}
+          onClose={() => setIsNotifOpen(false)}
           onRead={(id) => {
             if (id === 'ALL') {
               setNotifications(notifications.map(n => ({...n, isRead: true})));
             } else {
               setNotifications(notifications.map(n => n.id === id ? {...n, isRead: true} : n));
             }
-          }} 
+          }}
         />
       )}
 
-      {/* Отступ под фиксированный бар */}
-      <div style={{ height: '60px' }}></div>
-
-      {/* ОТОБРАЖЕНИЕ ЭКРАНОВ */}
-      {currentScreen === 'home' && <Home setCurrentScreen={setCurrentScreen} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} />}
+      {currentScreen === 'home' && <Home setCurrentScreen={setCurrentScreen} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} isAdmin={isAdmin} />}
       {currentScreen === 'profile' && <Profile setCurrentScreen={setCurrentScreen} currentUser={currentUser} isAdmin={isAdmin} setSelectedLot={setSelectedLot} favoriteLots={favoriteLots} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
-      {currentScreen === 'activeLot' && <ActiveLot setCurrentScreen={setCurrentScreen} selectedLot={selectedLot} currentUser={currentUser} isAdmin={isAdmin} isFavorite={favoriteLots.some(f => f.id === selectedLot?.id)} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
+      {currentScreen === 'activeLot' && <ActiveLot
+        setCurrentScreen={setCurrentScreen}
+        currentUser={currentUser}
+        selectedLot={selectedLot}
+        isAdmin={isAdmin}
+        isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)}
+        toggleFavorite={toggleFavorite}
+        handleOpenPublicProfile={handleOpenPublicProfile}
+      />}
       {currentScreen === 'addLot' && <AddLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
-      {currentScreen === 'adminDashboard' && <Admin setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} />}
-      
-      {/* ⚡ ДОБАВЛЕН ЭКРАН FAQ */}
-      {currentScreen === 'faq' && <FAQ setCurrentScreen={setCurrentScreen} />}
-
-      {currentScreen === 'completedLot' && <CompletedLot setCurrentScreen={setCurrentScreen} selectedLot={selectedLot} currentUser={currentUser} isFavorite={favoriteLots.some(f => f.id === selectedLot?.id)} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
+      {currentScreen === 'adminDashboard' && <Admin setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} setConfirmData={setConfirmData} />}
+      {currentScreen === 'completedLot' && <CompletedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} isFavorite={favoriteLots.some(fav => fav.id === selectedLot?.id)} toggleFavorite={toggleFavorite} handleOpenPublicProfile={handleOpenPublicProfile} />}
       {currentScreen === 'feedback' && <Feedback setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
       {currentScreen === 'publicProfile' && <PublicProfile setCurrentScreen={setCurrentScreen} currentUser={currentUser} publicProfileData={publicProfileData} referrer={publicProfileReferrer} setActiveChatPartnerId={setActiveChatPartnerId} />}
       {currentScreen === 'rejectedLot' && <RejectedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} lot={selectedLot} setAlertData={setAlertData} />}
+      {/* Передаем исправленный метод фонового обновления данных */}
       {currentScreen === 'settings' && <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} refreshCurrentUser={refreshCurrentUser} />}
       {currentScreen === 'writeReview' && <WriteReview setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} setAlertData={setAlertData} />}
       {currentScreen === 'ticketHistory' && <TicketHistory setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
 
+      {/* ⚡ НОВЫЙ ЭКРАН: Мессенджер с передачей ID собеседника */}
       {currentScreen === 'messenger' && (
         <Messenger
           setCurrentScreen={setCurrentScreen}
           currentUser={currentUser}
           activeChatPartnerId={activeChatPartnerId}
           setActiveChatPartnerId={setActiveChatPartnerId}
-          handleOpenPublicProfile={handleOpenPublicProfile}
         />
       )}
     </div>

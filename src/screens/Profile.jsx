@@ -69,10 +69,10 @@ function Profile({
           <img 
             src={getAvatarSrc(currentUser.avatarUrl)} 
             alt="avatar" 
-            style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} 
+            style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #1976d2' }} 
           />
         ) : (
-          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>👤</div>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👤</div>
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
@@ -91,6 +91,8 @@ function Profile({
       </div>
 
       <div className="profile-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '0 16px', marginBottom: '16px' }}>
+        
+        {/* ⚡ КРАСИВАЯ КНОПКА F.A.Q. С ГРАДИЕНТОМ */}
         <button 
           className="action-btn" 
           style={{ 
