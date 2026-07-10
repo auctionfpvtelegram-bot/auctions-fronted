@@ -21,12 +21,7 @@ function FAQ({ setCurrentScreen }) {
   };
 
   return (
-    <div style={{ padding: '0 16px', paddingBottom: '40px' }}>
-      <div className="screen-header" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center' }}>
-        <button className="back-btn" onClick={() => setCurrentScreen('profile')} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', paddingRight: '12px' }}>{'<'}</button>
-        <h2 className="screen-title" style={{ margin: 0, fontSize: '22px', fontWeight: 'bold' }}>Частые вопросы</h2>
-      </div>
-
+    <div style={{ padding: '0 16px', paddingBottom: '40px', marginTop: '12px' }}>
       {isLoading ? (
         <div style={{ textAlign: 'center', color: '#888', marginTop: '40px' }}>Загрузка вопросов...</div>
       ) : faqs.length === 0 ? (

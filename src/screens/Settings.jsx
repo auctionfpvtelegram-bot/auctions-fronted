@@ -11,7 +11,7 @@ function Settings({ setCurrentScreen, currentUser, setAlertData, refreshCurrentU
   const [hasChanges, setHasChanges] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // ⚡ Стейт для всплывающего окна-переходника в ТГ-Бота
+  // Стейт для всплывающего окна-переходника в ТГ-Бота
   const [showAvatarModal, setShowAvatarModal] = useState(false);
 
   const isModeration = currentUser?.profileStatus === 'MODERATION';
@@ -23,148 +23,147 @@ function Settings({ setCurrentScreen, currentUser, setAlertData, refreshCurrentU
     }
   }, [currentUser]);
 
-  // ⚡ Запрос к боту на открытие диалога для загрузки фото
+  // Запрос к боту на открытие диалога для загрузки фото
   const handleAvatarUploadRequest = () => {
     fetch(`${API_URL}/api/users/${currentUser.id}/request-avatar-upload`, { method: 'POST' })
       .then(() => {
-        // Мгновенно закрываем Web App, чтобы юзер оказался в боте
-        if (window.Telegram?.WebApp) {
-          window.Telegram.WebApp.close();
-        }
+        // Мгновенно закрываем Web App, чтобы юзер остался в чате с ботом
+        window.Telegram?.WebApp?.close();
       })
-      .catch(() => {
-        if (setAlertData) setAlertData({ message: '❌ Ошибка соединения с ботом', onClose: () => {} });
+      .catch(err => {
+        console.error(err);
+        setAlertData({ message: 'Ошибка при связи с ботом. Попробуйте позже.' });
       });
+  };
+
+  const getAvatarSrc = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    return `${API_URL}/api/image/${url}`;
   };
 
   const handleNameChange = (e) => {
     setNewName(e.target.value);
-    setHasChanges(true);
+    setHasChanges(e.target.value !== (currentUser?.customName || currentUser?.username || ''));
   };
 
-  // ⚡ Сохранение ТОЛЬКО имени и смена статуса на модерацию
   const handleSaveProfile = () => {
+    if (!newName.trim()) return setAlertData({ message: 'Имя не может быть пустым' });
     setIsSubmitting(true);
     fetch(`${API_URL}/api/users/${currentUser.id}/profile`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        customName: newName,
-        profileStatus: 'MODERATION' // Принудительно ставим статус модерации
-      }) 
+      body: JSON.stringify({ customName: newName })
     })
-    .then(async res => {
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Ошибка сохранения');
-      
-      if (refreshCurrentUser) refreshCurrentUser(); // Фоново обновляем статус юзера в приложении
-      if (setAlertData) {
-        setAlertData({ message: '✅ Никнейм успешно отправлен на модерацию!', onClose: () => {} });
-      }
-      setHasChanges(false);
-      setIsSubmitting(false);
-    })
-    .catch(err => {
-      if (setAlertData) {
-        setAlertData({ message: `⚠️ ${err.message}`, onClose: () => {} });
-      }
-      setIsSubmitting(false);
-    });
+      .then(res => res.json())
+      .then(data => {
+        setIsSubmitting(false);
+        if (data.error) return setAlertData({ message: data.error });
+        setAlertData({ message: '✅ Профиль отправлен на модерацию!' });
+        setHasChanges(false);
+        if (refreshCurrentUser) refreshCurrentUser();
+      })
+      .catch(() => {
+        setIsSubmitting(false);
+        setAlertData({ message: 'Ошибка сохранения' });
+      });
   };
-
-  // ⚡ Умное формирование ссылки на аватарку
-  const getAvatarSrc = () => {
-    if (!currentUser?.avatarUrl) return null;
-    if (currentUser.avatarUrl.startsWith('http') || currentUser.avatarUrl.startsWith('data:')) {
-      return currentUser.avatarUrl;
-    }
-    return `${API_URL}/api/image/${currentUser.avatarUrl}`;
-  };
-
-  const avatarSrc = getAvatarSrc();
 
   return (
-    <div className="app-container">
-      <div className="screen-header">
-        <button className="back-btn" onClick={() => setCurrentScreen('profile')}>{'<'}</button>
-        <h2 className="screen-title">Настройки</h2>
-      </div>
-
-      {/* ⚡ ВСПЛЫВАЮЩЕЕ ОКНО-ПЕРЕХОДНИК ДЛЯ АВАТАРКИ */}
+    <div style={{ padding: '0 16px', paddingBottom: '40px' }}>
+      
+      {/* ⚡ Всплывающее окно перед переходом в бота */}
       {showAvatarModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '16px' }}>
-          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '320px', textAlign: 'center' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px' }}>📸 Обновление фото</h3>
-            <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#666' }}>
-              Чтобы загрузить новую аватарку, перейдите в диалог с ботом.
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', textAlign: 'center', width: '100%', maxWidth: '300px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px' }}>Загрузка фото</h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#666', lineHeight: '1.4' }}>
+              Приложение сейчас закроется. <br/>Пожалуйста, отправьте вашу новую аватарку <b>прямо в чат с ботом</b>.
             </p>
-            <button onClick={handleAvatarUploadRequest} style={{ width: '100%', height: '44px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', marginBottom: '8px', cursor: 'pointer' }}>
-              Перейти в бота
-            </button>
-            <button onClick={() => setShowAvatarModal(false)} style={{ width: '100%', height: '44px', background: '#eee', color: '#333', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>
-              Отмена
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                onClick={() => setShowAvatarModal(false)}
+                style={{ flex: 1, padding: '10px', background: '#eee', border: 'none', borderRadius: '8px', fontWeight: 'bold', color: '#333' }}
+              >
+                Отмена
+              </button>
+              <button 
+                onClick={handleAvatarUploadRequest}
+                style={{ flex: 1, padding: '10px', background: '#1976d2', border: 'none', borderRadius: '8px', fontWeight: 'bold', color: '#fff' }}
+              >
+                Понятно
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* 👤 БЛОК ПРОФИЛЯ */}
-      <div style={{ background: '#fff', margin: '16px', borderRadius: '16px', padding: '24px 16px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+      {/* ⚡ Предупреждения о статусе модерации */}
+      {isModeration && (
+        <div style={{ background: '#fff3e0', padding: '12px 16px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #ffb74d', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <span style={{ fontSize: '20px' }}>⏳</span>
+          <p style={{ margin: 0, fontSize: '13px', color: '#e65100', lineHeight: '1.4' }}>
+            Ваш профиль находится на проверке у модераторов. Вы не можете вносить изменения до завершения проверки.
+          </p>
+        </div>
+      )}
+
+      {isRejected && (
+        <div style={{ background: '#ffebee', padding: '12px 16px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #ef5350', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <span style={{ fontSize: '20px' }}>🚫</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#c62828', fontWeight: 'bold' }}>
+              Профиль отклонен модератором
+            </p>
+            <p style={{ margin: 0, fontSize: '12px', color: '#b71c1c' }}>
+              Причина: {currentUser.profileRejectReason || 'Нарушение правил. Исправьте данные и отправьте снова.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ⚡ Блок кастомизации профиля */}
+      <div style={{ background: '#fff', borderRadius: '12px', padding: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
         
-        {/* Аватарка */}
-        <div style={{ position: 'relative', marginBottom: '20px', width: '90px', height: '90px' }}>
-          {avatarSrc ? (
-            <img src={avatarSrc} alt="avatar" style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #1976d2', opacity: isModeration ? 0.7 : 1 }} />
-          ) : (
-            <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', opacity: isModeration ? 0.7 : 1 }}>👤</div>
-          )}
-          
-          {/* ⚡ Если не на модерации - показываем карандашик, который открывает модалку, а НЕ галерею телефона */}
-          {!isModeration && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ position: 'relative' }}>
+            {currentUser?.avatarUrl ? (
+              <img 
+                src={getAvatarSrc(currentUser.avatarUrl)} 
+                alt="avatar" 
+                style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} 
+              />
+            ) : (
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>👤</div>
+            )}
+            
             <button 
-              onClick={() => setShowAvatarModal(true)} 
-              style={{ position: 'absolute', bottom: '0px', right: '0px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '15px', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', zIndex: 10 }}
+              onClick={() => setShowAvatarModal(true)}
+              disabled={isModeration}
+              style={{ position: 'absolute', bottom: 0, right: 0, background: '#1976d2', border: '2px solid #fff', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: isModeration ? 'not-allowed' : 'pointer', padding: 0, opacity: isModeration ? 0.5 : 1 }}
             >
-              ✏️
+              📷
             </button>
-          )}
+          </div>
+
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={{ fontSize: '12px', color: '#666', fontWeight: 'bold' }}>Отображаемое имя</label>
+            <input 
+              type="text" 
+              value={newName} 
+              onChange={handleNameChange}
+              disabled={isModeration}
+              placeholder="Введите ваше имя"
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '15px', outline: 'none', boxSizing: 'border-box', background: isModeration ? '#f5f5f5' : '#fff' }}
+            />
+          </div>
         </div>
 
-        {/* Имя пользователя */}
-        <div style={{ width: '100%', maxWidth: '240px', position: 'relative' }}>
-          <input 
-            type="text" 
-            value={newName} 
-            onChange={handleNameChange}
-            placeholder="Ваш никнейм"
-            disabled={isModeration}
-            style={{ width: '100%', height: '44px', border: '1px solid #ddd', borderRadius: '12px', padding: isModeration ? '0 16px' : '0 36px 0 16px', outline: 'none', fontSize: '16px', textAlign: 'center', boxSizing: 'border-box', fontWeight: 'bold', color: isModeration ? '#666' : '#111', background: isModeration ? '#f5f5f5' : '#fff' }}
-          />
-          {!isModeration && (
-            <span style={{ position: 'absolute', right: '12px', top: '12px', fontSize: '14px', color: '#999', pointerEvents: 'none' }}>✏️</span>
-          )}
-        </div>
-
-        {isModeration && !hasChanges && (
-          <div style={{ marginTop: '16px', background: '#fff3e0', border: '1px solid #ffe0b2', padding: '12px', borderRadius: '12px', textAlign: 'center', width: '100%', boxSizing: 'border-box' }}>
-            <div style={{ fontSize: '16px', marginBottom: '4px' }}>⏳</div>
-            <div style={{ fontSize: '13px', color: '#e65100', fontWeight: 'bold', marginBottom: '4px' }}>Профиль на модерации</div>
-            <div style={{ fontSize: '11px', color: '#f57c00' }}>Вносить изменения временно нельзя.</div>
-          </div>
-        )}
-        
-        {isRejected && !hasChanges && (
-          <div style={{ marginTop: '16px', background: '#ffebee', border: '1px solid #ffcdd2', padding: '12px', borderRadius: '12px', textAlign: 'center', width: '100%', boxSizing: 'border-box' }}>
-            <div style={{ fontSize: '13px', color: '#c62828', fontWeight: 'bold', marginBottom: '4px' }}>🚫 Профиль отклонен</div>
-            <div style={{ fontSize: '11px', color: '#d32f2f' }}>Причина: {currentUser?.profileRejectReason || 'Нарушение правил'}</div>
-          </div>
-        )}
-
-        {hasChanges && !isModeration && (
+        {hasChanges && (
           <button 
-            onClick={handleSaveProfile}
-            disabled={isSubmitting}
-            style={{ marginTop: '20px', width: '100%', maxWidth: '240px', height: '44px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(46, 125, 50, 0.3)' }}
+            onClick={handleSaveProfile} 
+            disabled={isSubmitting || isModeration}
+            style={{ width: '100%', padding: '12px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(46, 125, 50, 0.3)' }}
           >
             {isSubmitting ? 'Отправка...' : 'Отправить на проверку'}
           </button>

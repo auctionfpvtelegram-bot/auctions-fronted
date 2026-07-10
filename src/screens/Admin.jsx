@@ -32,7 +32,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
   const [adminFaqs, setAdminFaqs] = useState([]);
   const [newFaqQuestion, setNewFaqQuestion] = useState('');
   const [newFaqAnswer, setNewFaqAnswer] = useState('');
-  // ⚡ СТЕЙТ ДЛЯ ПРИОРИТЕТА
   const [newFaqPriority, setNewFaqPriority] = useState(0);
 
   useEffect(() => {
@@ -95,7 +94,7 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
     })
       .then(res => res.json())
       .then(() => {
-        setAdminModal(null);
+        versionLotModal(null);
         setIsRejectMode(false);
         setRejectReasonText('');
         setAdminLotsList(prev => prev.map(l => l.id === lotId ? { ...l, status, rejectReason: reason } : l));
@@ -119,7 +118,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
       .catch(err => console.error(err));
   };
 
-  // ⚡ ОТПРАВЛЯЕМ ПРИОРИТЕТ НА СЕРВЕР
   const handleCreateFaq = () => {
     if (!newFaqQuestion.trim() || !newFaqAnswer.trim()) {
       return setAlertData({ message: 'Пожалуйста, заполните вопрос и ответ.' });
@@ -131,12 +129,11 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
     })
     .then(res => res.json())
     .then(data => {
-      // Чтобы новые данные сразу отсортировались визуально
       const updatedList = [data, ...adminFaqs].sort((a, b) => b.priority - a.priority || b.id - a.id);
       setAdminFaqs(updatedList);
       setNewFaqQuestion('');
       setNewFaqAnswer('');
-      setNewFaqPriority(0); // Сбрасываем приоритет
+      setNewFaqPriority(0);
       setAlertData({ message: '✅ Вопрос успешно добавлен в базу!' });
     })
     .catch(err => console.error(err));
@@ -165,32 +162,15 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
               {isRejectMode ? (
                 <div>
                   <h3 style={{ margin: '0 0 8px 0', color: '#c62828', fontSize: '18px' }}>🚫 Отклонение лота #{data.id}</h3>
-                  <p style={{ fontSize: '13px', color: '#666', marginBottom: '14px' }}>Укажите причину. Она мгновенно отобразится у пользователя в приложении и прилетит уведомлением в бот.</p>
-                  
+                  <p style={{ fontSize: '13px', color: '#666', marginBottom: '14px' }}>Укажите причину.</p>
                   <textarea 
-                    value={rejectReasonText}
-                    onChange={(e) => setRejectReasonText(e.target.value)}
-                    placeholder="Например: Некачественные фотографии..."
-                    rows={4}
+                    value={rejectReasonText} onChange={(e) => setRejectReasonText(e.target.value)}
+                    placeholder="Например: Некачественные фотографии..." rows={4}
                     style={{ width: '100%', border: '1px solid #ddd', borderRadius: '10px', padding: '10px', boxSizing: 'border-box', outline: 'none', resize: 'none', marginBottom: '16px', fontFamily: 'inherit', fontSize: '13px' }}
                   />
-                  
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-                      onClick={() => {
-                        if (!rejectReasonText.trim()) return alert('Пожалуйста, введите причину отклонения!');
-                        handleUpdateLotStatus(data.id, 'REJECTED', rejectReasonText);
-                      }} 
-                      style={{ flex: 1, height: '40px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
-                    >
-                      Подтвердить
-                    </button>
-                    <button 
-                      onClick={() => { setIsRejectMode(false); setRejectReasonText(''); }} 
-                      style={{ width: '90px', height: '40px', background: '#eee', color: '#333', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
-                    >
-                      Назад
-                    </button>
+                    <button onClick={() => { if (!rejectReasonText.trim()) return alert('Укажите причину!'); handleUpdateLotStatus(data.id, 'REJECTED', rejectReasonText); }} style={{ flex: 1, height: '40px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Подтвердить</button>
+                    <button onClick={() => { setIsRejectMode(false); setRejectReasonText(''); }} style={{ width: '90px', height: '40px', background: '#eee', color: '#333', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Назад</button>
                   </div>
                 </div>
               ) : (
@@ -202,14 +182,12 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
                   <p style={{ margin: '6px 0', fontSize: '14px' }}><b>Город:</b> {data.location}</p>
                   <p style={{ margin: '6px 0', fontSize: '14px' }}><b>Стартовая:</b> {data.startPrice} ₽</p>
                   <p style={{ margin: '6px 0', fontSize: '14px' }}><b>Выкуп:</b> {data.buyNowPrice || 'Нет'}</p>
-                  
                   {data.status === 'MODERATION' && (
                     <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
                       <button onClick={() => handleUpdateLotStatus(data.id, 'ACTIVE')} style={{ flex: 1, height: '40px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Одобрить</button>
                       <button onClick={() => setIsRejectMode(true)} style={{ flex: 1, height: '40px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Отклонить</button>
                     </div>
                   )}
-                  
                   <button onClick={() => { setAdminModal(null); setIsRejectMode(false); setRejectReasonText(''); }} style={{ width: '100%', height: '38px', background: '#eee', border: 'none', borderRadius: '8px', marginTop: '16px', fontWeight: '600', cursor: 'pointer', color: '#333' }}>Закрыть окно</button>
                 </div>
               )}
@@ -221,20 +199,15 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
               <h3 style={{ margin: '0 0 12px 0' }}>Отзыв #{data.id}</h3>
               <p><b>Рейтинг:</b> {'★'.repeat(data.rating)}</p>
               <p><b>Текст:</b> {data.text}</p>
-              
               {data.status === 'MODERATION' && (
                 <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
                   <button onClick={() => handleUpdateReviewStatus(data.id, 'ACTIVE')} style={{ flex: 1, height: '40px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Одобрить</button>
-                  <button onClick={() => {
-                    const r = prompt('Причина отклонения отзыва:');
-                    if(r) handleUpdateReviewStatus(data.id, 'REJECTED', r);
-                  }} style={{ flex: 1, height: '40px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Отклонить</button>
+                  <button onClick={() => { const r = prompt('Причина отклонения:'); if(r) handleUpdateReviewStatus(data.id, 'REJECTED', r); }} style={{ flex: 1, height: '40px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Отклонить</button>
                 </div>
               )}
               <button onClick={() => setAdminModal(null)} style={{ width: '100%', height: '36px', background: '#eee', border: 'none', borderRadius: '8px', marginTop: '16px', fontWeight: '600', cursor: 'pointer' }}>Закрыть окно</button>
             </div>
           )}
-
         </div>
       </div>
     );
@@ -245,19 +218,20 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
       
       {adminScreen === 'dashboard' && (
         <>
-          <div style={{ padding: '16px 16px 0 16px' }}>
-             <button 
-                onClick={() => setAdminScreen('faq')} 
-                style={{ width: '100%', padding: '14px', background: '#1976d2', color: '#fff', borderRadius: '12px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', boxShadow: '0 2px 8px rgba(25, 118, 210, 0.2)' }}
-             >
-               <span style={{ fontSize: '18px' }}>💡</span> Управление Базой Знаний
-             </button>
-          </div>
-          
           <AdminDashboard 
             adminStats={adminStats} globalBanner={globalBanner} setGlobalBanner={setGlobalBanner}
             setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} 
           />
+
+          {/* ⚡ ПЕРЕНЕСЕНО СТРОГО ПОД СТАТИСТИКУ / ДАШБОРД (Пункт 4) */}
+          <div style={{ padding: '0 16px 16px 16px' }}>
+             <button 
+                onClick={() => setAdminScreen('faq')} 
+                style={{ width: '100%', padding: '14px', background: '#1976d2', color: '#fff', borderRadius: '12px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', boxShadow: '0 2px 8px rgba(25, 118, 210, 0.2)' }}
+             >
+               <span style={{ fontSize: '18px' }}>💡</span> Управление Базой Знаний (F.A.Q.)
+             </button>
+          </div>
         </>
       )}
 
@@ -271,25 +245,20 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
           <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
              <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#111' }}>Добавить новый вопрос</h3>
              <input 
-               type="text" 
-               placeholder="Вопрос (заголовок)" 
-               value={newFaqQuestion} 
+               type="text" placeholder="Вопрос (заголовок)" value={newFaqQuestion} 
                onChange={e => setNewFaqQuestion(e.target.value)} 
                style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }} 
              />
              <textarea 
-               placeholder="Ответ (подробное описание)" 
-               value={newFaqAnswer} 
+               placeholder="Ответ (подробное описание)" value={newFaqAnswer} 
                onChange={e => setNewFaqAnswer(e.target.value)} 
                style={{ width: '100%', padding: '12px', marginBottom: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', minHeight: '100px', resize: 'vertical', outline: 'none', fontSize: '14px', fontFamily: 'inherit' }} 
              />
              
-             {/* ⚡ ВВОД ПРИОРИТЕТА */}
              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
                <span style={{ fontSize: '14px', color: '#555' }}>Приоритет:</span>
                <input 
-                 type="number" 
-                 value={newFaqPriority} 
+                 type="number" value={newFaqPriority} 
                  onChange={e => setNewFaqPriority(Number(e.target.value))} 
                  style={{ width: '80px', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }} 
                />
