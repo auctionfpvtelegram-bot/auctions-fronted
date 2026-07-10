@@ -11,8 +11,10 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
   const [userActionModal, setUserActionModal] = useState(null);
   const [alertData, setAlertData] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
+  const [sellerData, setSellerData] = useState(null);
+  const [biddersData, setBiddersData] = useState({});
 
-  // ⚡ Функция для аватарок (отсеивает пустоты)
+  // ⚡ Функция для аватарок и фото (отсеивает пустоты)
   const getAvatarSrc = (url) => {
     if (!url || url === 'null' || url === 'undefined') return null;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
@@ -22,6 +24,26 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
   useEffect(() => {
     if (selectedLot) {
       setLocalLot(selectedLot);
+
+      // Докачиваем данные продавца, если их нет
+      if (!selectedLot.seller && selectedLot.sellerId) {
+        fetch(`${API_URL}/api/users/${selectedLot.sellerId}/public`)
+          .then(res => res.json())
+          .then(data => setSellerData(data))
+          .catch(() => {});
+      }
+
+      // Докачиваем профили участников торгов, если их нет
+      if (selectedLot.bids) {
+        selectedLot.bids.forEach(bid => {
+          if (!bid.user && bid.userId && !biddersData[bid.userId]) {
+            fetch(`${API_URL}/api/users/${bid.userId}/public`)
+              .then(res => res.json())
+              .then(data => setBiddersData(prev => ({ ...prev, [bid.userId]: data })))
+              .catch(() => {});
+          }
+        });
+      }
     }
   }, [selectedLot]);
 
@@ -120,8 +142,8 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
     });
   };
 
-  // Получаем данные продавца
-  const seller = localLot.user || localLot.seller || {};
+  // Получаем данные продавца (приоритет: вложенный объект → подгруженные данные)
+  const seller = localLot.user || localLot.seller || sellerData || {};
 
   return (
     <>
@@ -138,7 +160,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
 
         {localLot.photos && localLot.photos.length > 0 ? (
           <>
-            <img src={localLot.photos[photoIndex]} alt="Lot" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+            <img src={getAvatarSrc(localLot.photos[photoIndex])} alt="Lot" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
             
             {localLot.photos.length > 1 && (
               <>
@@ -231,7 +253,7 @@ function ActiveLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isFavo
         <div className="bid-history-list">
           {localLot.bids?.map((bid, index) => {
             const isWinner = index === 0;
-            const bidUser = bid.user || {};
+            const bidUser = bid.user || biddersData[bid.userId] || {};
 
             return (
               <div 
