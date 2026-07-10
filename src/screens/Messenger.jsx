@@ -7,7 +7,8 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loadingPartner, setLoadingPartner] = useState(false);
-  const [isListVisible, setIsListVisible] = useState(true); 
+  const [isListVisible, setIsListVisible] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const scrollRef = useRef(null);
   
   // Твой ID администратора
@@ -16,6 +17,19 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   const getAvatarSrc = (url) => {
     if (!url || url === 'null' || url === 'undefined' || url === '') return null;
     return url.startsWith('http') || url.startsWith('data:') ? url : `${API_URL}/api/image/${url}`;
+  };
+
+  // ⚡ Умное форматирование даты (Сегодня в 15:30 / 12 мая в 10:00)
+  const formatSmartDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const today = new Date();
+    const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+    
+    if (isToday) {
+      return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   };
 
   // 1. Загрузка всех чатов без скрытия реальной поддержки
@@ -217,6 +231,15 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   }
 
+  // ⚡ Фильтрация отображаемых чатов по поисковому запросу
+  const filteredDisplayedChats = displayedChats.filter(chat => {
+    const partner = chat.users.find(u => u.id !== currentUser.id) || {};
+    const name = (partner.customName || partner.firstName || '').toLowerCase();
+    const id = partner.id || '';
+    const query = searchQuery.toLowerCase();
+    return name.includes(query) || String(id).includes(query);
+  });
+
   const activePartner = activeChat ? activeChat.users.find(u => u.id !== currentUser.id) : null;
 
   return (
@@ -228,8 +251,19 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
           <h2 className="screen-title" style={{ margin: 0, fontSize: '18px' }}>Диалоги</h2>
         </div>
 
+        {/* ⚡ Поиск по чатам */}
+        <div style={{ padding: '0 16px 12px 16px' }}>
+          <input 
+            type="text" 
+            placeholder="🔍 Поиск по имени или ID..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #eee', background: '#f9f9f9', outline: 'none', fontSize: '15px', boxSizing: 'border-box' }}
+          />
+        </div>
+
         <div className="ticket-list" style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
-          {displayedChats.map(chat => {
+          {filteredDisplayedChats.map(chat => {
             const partner = chat.users.find(u => u.id !== currentUser.id) || {};
             const isSelected = activeChat?.id === chat.id;
             const avatarUrlValid = getAvatarSrc(partner.avatarUrl);
@@ -269,6 +303,11 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               </div>
             );
           })}
+          {filteredDisplayedChats.length === 0 && (
+            <div style={{ padding: '24px 16px', textAlign: 'center', color: '#999' }}>
+              {searchQuery ? 'Ничего не найдено' : 'Нет чатов'}
+            </div>
+          )}
         </div>
       </div>
 
@@ -356,7 +395,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                     {msg.text && <span style={{ fontSize: '14px', wordBreak: 'break-word', lineHeight: '1.4' }}>{msg.text}</span>}
                     
                     <span style={{ fontSize: '10px', color: isMine ? '#8a6d00' : '#888', alignSelf: 'flex-end', marginTop: '4px', fontWeight: 'bold' }}>
-                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatSmartDate(msg.createdAt)}
                     </span>
                   </div>
                 );

@@ -7,6 +7,13 @@ export function AdminTickets({
 }) {
 
   const activeTicket = adminTickets.find(t => t.id === activeChat);
+  const [ticketSearch, setTicketSearch] = React.useState('');
+
+  // ⚡ Фильтрация тикетов по ID тикета или ID автора
+  const filteredTickets = adminTickets.filter(t => 
+    String(t.id).includes(ticketSearch) || 
+    String(t.authorId).includes(ticketSearch)
+  );
 
   if (activeChat) {
     return (
@@ -87,13 +94,28 @@ export function AdminTickets({
     <div style={{ padding: '16px', background: '#f5f5f5', minHeight: '100vh' }}>
       <button onClick={() => setAdminScreen('dashboard')} style={{ background: 'none', border: 'none', color: '#1976d2', fontWeight: 'bold', marginBottom: '16px', cursor: 'pointer' }}>← В меню модератора</button>
       <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>🎧 Обращения в поддержку</h3>
+      
+      {/* ⚡ Поиск тикетов */}
+      <input 
+        type="text" 
+        placeholder="🔍 Поиск по ID тикета или ID автора..." 
+        value={ticketSearch}
+        onChange={(e) => setTicketSearch(e.target.value)}
+        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #ddd', marginBottom: '16px', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }}
+      />
+
       <div className="ticket-list">
-        {adminTickets.map((ticket) => (
+        {filteredTickets.map((ticket) => (
           <div key={ticket.id} className="ticket-card" onClick={() => { setChatMessages([]); setActiveChat(ticket.id); }} style={{ background: '#fff', border: '1px solid #eee', marginBottom: '12px', borderRadius: '12px', padding: '16px', cursor: 'pointer' }}>
             <h4 style={{ margin: '0 0 6px 0', fontSize: '15px' }}>{ticket.topic}</h4>
             <p style={{ margin: 0, fontSize: '12px', color: '#888' }}>От пользователя: {ticket.authorId}</p>
           </div>
         ))}
+        {filteredTickets.length === 0 && (
+          <div style={{ textAlign: 'center', color: '#999', padding: '24px' }}>
+            {ticketSearch ? 'Ничего не найдено' : 'Нет обращений'}
+          </div>
+        )}
       </div>
     </div>
   );
