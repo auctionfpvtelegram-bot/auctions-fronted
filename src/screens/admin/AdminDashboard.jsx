@@ -20,53 +20,42 @@ export function AdminDashboard({ adminStats, globalBanner, setGlobalBanner, setA
       {adminStats && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
           <div style={{ background: '#fff', padding: '14px', borderRadius: '12px', border: '1px solid #eee' }}>
-            <span style={{ fontSize: '12px', color: '#888' }}>Всего пользователей</span>
-            <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '4px' }}>{adminStats.usersCount}</div>
+            <span style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '4px' }}>Всего пользователей</span>
+            <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#111' }}>{adminStats.totalUsers}</span>
           </div>
           <div style={{ background: '#fff', padding: '14px', borderRadius: '12px', border: '1px solid #eee' }}>
-            <span style={{ fontSize: '12px', color: '#888' }}>Активных лотов</span>
-            <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '4px' }}>{adminStats.activeLotsCount}</div>
+            <span style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '4px' }}>Лотов (Актив/Всего)</span>
+            <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#1976d2' }}>{adminStats.activeLots} / {adminStats.totalLots}</span>
           </div>
-          <div style={{ background: '#fff', padding: '14px', borderRadius: '12px', border: '1px solid #eee' }}>
-            <span style={{ fontSize: '12px', color: '#888' }}>Успешных сделок</span>
-            <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '4px' }}>{adminStats.dealsCount}</div>
-          </div>
-          <div style={{ background: '#fff', padding: '14px', borderRadius: '12px', border: '1px solid #eee' }}>
-            <span style={{ fontSize: '12px', color: '#888' }}>Общий оборот</span>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px', color: '#2e7d32' }}>{adminStats.totalTurnover?.toLocaleString()} ₽</div>
+          <div style={{ background: '#fff', padding: '14px', borderRadius: '12px', border: '1px solid #eee', gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between' }}>
+            <div>
+              <span style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '4px' }}>Оборот (Сумма выкупов)</span>
+              <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#2e7d32' }}>{adminStats.totalVolume?.toLocaleString('ru-RU')} ₽</span>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '4px' }}>Отзывов на модерации</span>
+              <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#fbc02d' }}>{adminStats.reviewsPending}</span>
+            </div>
           </div>
         </div>
       )}
 
-      {/* 🧭 Меню управления */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-        <button onClick={() => setAdminScreen('lots')} style={{ width: '100%', height: '48px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
-          📦 Модерация лотов ({adminStats?.moderationLotsCount || 0})
-        </button>
-        <button onClick={() => setAdminScreen('reviews')} style={{ width: '100%', height: '48px', background: '#0288d1', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
-          ⭐ Модерация отзывов
-        </button>
-        {/* ⚡ НОВАЯ КНОПКА: Модерация профилей пользователей */}
-        <button onClick={() => setAdminScreen('profiles')} style={{ width: '100%', height: '48px', background: '#7b1fa2', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
-          👤 Профили на модерации ({adminStats?.moderationProfilesCount || 0})
-        </button>
-        <button onClick={() => setAdminScreen('tickets')} style={{ width: '100%', height: '48px', background: '#ed6c02', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
-          🎧 Обращения (Поддержка)
-        </button>
-        <button onClick={() => setAdminScreen('users')} style={{ width: '100%', height: '48px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
-          🚫 Блокировка пользователей
+      {/* ⚡ ВОТ ОНА — КНОПКА FAQ ПРЯМО ПОД СТАТИСТИКОЙ */}
+      <div style={{ marginBottom: '20px' }}>
+        <button 
+          onClick={() => setAdminScreen('faq')} 
+          style={{ width: '100%', padding: '14px', background: '#1976d2', color: '#fff', borderRadius: '12px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', boxShadow: '0 2px 8px rgba(25, 118, 210, 0.2)' }}
+        >
+          <span style={{ fontSize: '18px' }}>💡</span> Управление Базой Знаний (F.A.Q.)
         </button>
       </div>
 
-      {/* 📢 Массовое оповещение */}
-      <div style={{ background: '#fff', padding: '16px', borderRadius: '16px', border: '1px solid #eee', marginBottom: '20px' }}>
-        <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', fontWeight: 'bold', color: '#333' }}>📢 Массовое оповещение пользователей</h3>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <span style={{ fontSize: '13px', color: '#555' }}>Показывать баннер всем на главной</span>
-          <input type="checkbox" checked={globalBanner.isBannerOn || false} onChange={(e) => setGlobalBanner({ ...globalBanner, isBannerOn: e.target.checked })} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
-        </div>
-        <input type="text" value={globalBanner.bannerText || ''} onChange={(e) => setGlobalBanner({ ...globalBanner, bannerText: e.target.value })} placeholder="Текст уведомления (например: Тех. работы 15:00)..." style={{ width: '100%', height: '40px', border: '1px solid #ddd', borderRadius: '10px', padding: '0 12px', marginBottom: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
-        <input type="text" value={globalBanner.bannerLink || ''} onChange={(e) => setGlobalBanner({ ...globalBanner, bannerLink: e.target.value })} placeholder="Ссылка при клике на баннер (необязательно)..." style={{ width: '100%', height: '40px', border: '1px solid #ddd', borderRadius: '10px', padding: '0 12px', marginBottom: '5px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+        <button onClick={() => setAdminScreen('lots')} style={{ padding: '14px', background: '#fff', border: '1px solid #ddd', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>📦 Модерация лотов</button>
+        <button onClick={() => setAdminScreen('reviews')} style={{ padding: '14px', background: '#fff', border: '1px solid #ddd', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>⭐ Модерация отзывов</button>
+        <button onClick={() => setAdminScreen('profiles')} style={{ padding: '14px', background: '#fff', border: '1px solid #ddd', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>👤 Модерация профилей</button>
+        <button onClick={() => setAdminScreen('users')} style={{ padding: '14px', background: '#fff', border: '1px solid #ddd', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>👥 Пользователи / Бан</button>
+        <button onClick={() => setAdminScreen('tickets')} style={{ padding: '14px', background: '#111', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', gridColumn: 'span 2' }}>🎧 Обращения (Тикеты)</button>
       </div>
 
       {/* ⚙️ Интеграция с Telegram */}
@@ -80,8 +69,8 @@ export function AdminDashboard({ adminStats, globalBanner, setGlobalBanner, setA
           <span style={{ fontSize: '13px', color: '#555' }}>Дублировать лоты в Группу-форум</span>
           <input type="checkbox" checked={globalBanner.isGroupOn ?? true} onChange={(e) => setGlobalBanner({ ...globalBanner, isGroupOn: e.target.checked })} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
         </div>
-        <button onClick={handleSaveSettings} style={{ width: '100%', height: '42px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
-          Сохранить конфигурацию
+        <button onClick={handleSaveSettings} style={{ width: '100%', padding: '12px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+          💾 Сохранить настройки интеграции
         </button>
       </div>
     </div>
