@@ -6,14 +6,16 @@ function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isF
   const [photoIndex, setPhotoIndex] = useState(0);
   const [alertData, setAlertData] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
+  const [sellerData, setSellerData] = useState(null);
+  const [winnerData, setWinnerData] = useState(null);
 
   // ⚡ Переменные для работы с завершённым лотом
   const isWinner = localLot?.bids?.[0]?.userId === currentUser.id;
   const isSeller = localLot?.sellerId === currentUser.id;
   const canReview = isWinner || isSeller;
   const userReview = localLot?.reviews?.find(r => r.authorId === currentUser.id);
-  const winnerName = localLot?.bids?.[0]?.user?.customName || localLot?.bids?.[0]?.user?.firstName || `ID: ${localLot?.bids?.[0]?.userId}`;
-  const sellerName = localLot?.seller?.customName || localLot?.seller?.firstName || `ID: ${localLot?.sellerId}`;
+  const winnerName = localLot?.bids?.[0]?.user?.customName || localLot?.bids?.[0]?.user?.firstName || winnerData?.customName || winnerData?.firstName || `ID: ${localLot?.bids?.[0]?.userId}`;
+  const sellerName = localLot?.seller?.customName || localLot?.seller?.firstName || sellerData?.customName || sellerData?.firstName || `ID: ${localLot?.sellerId}`;
 
   // ⚡ Функция для аватарок (отсеивает пустоты)
   const getAvatarSrc = (url) => {
@@ -25,30 +27,27 @@ function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isF
   useEffect(() => {
     if (selectedLot) {
       setLocalLot(selectedLot);
+      
+      // Если профиль продавца не прилетел в лоте, запрашиваем его по ID
+      if (!selectedLot.seller && selectedLot.sellerId) {
+        fetch(`${API_URL}/api/users/${selectedLot.sellerId}/public`)
+          .then(res => res.json())
+          .then(data => setSellerData(data))
+          .catch(() => {});
+      }
+      
+      // Если профиль победителя не прилетел, запрашиваем его по ID ставки
+      const topBid = selectedLot.bids?.[0];
+      if (topBid && !topBid.user && topBid.userId) {
+        fetch(`${API_URL}/api/users/${topBid.userId}/public`)
+          .then(res => res.json())
+          .then(data => setWinnerData(data))
+          .catch(() => {});
+      }
     }
   }, [selectedLot]);
 
   if (!localLot) return <div className="app-container">Лот не найден</div>;
-
-  const handleEarlyComplete = () => {
-    setConfirmData({
-      message: 'Вы уверены, что хотите досрочно завершить этот лот?',
-      onConfirm: () => {
-        fetch(`${API_URL}/api/lots/${localLot.id}/status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'COMPLETED' })
-        })
-        .then(() => {
-          setAlertData({ 
-            message: '🛑 Лот успешно завершен досрочно!',
-            onClose: () => setCurrentScreen('profile')
-          });
-        })
-        .catch(() => setAlertData({ message: '❌ Ошибка при завершении лота.' }));
-      }
-    });
-  };
 
   const handleDeleteBid = (bidId) => {
     setConfirmData({
@@ -67,8 +66,8 @@ function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isF
     });
   };
 
-  // Получаем данные продавца
-  const seller = localLot.user || localLot.seller || {};
+  // Получаем данные продавца (приоритет: вложенный объект → подгруженные данные)
+  const seller = localLot.user || localLot.seller || sellerData || {};
 
   return (
     <>
@@ -152,7 +151,7 @@ function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isF
         
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
           <span className="seller-username" style={{ margin: 0, padding: 0, fontWeight: 'bold', fontSize: '15px', lineHeight: '1.2', color: '#111' }}>
-            {seller.customName || seller.firstName || seller.username || 'Аноним'}
+            {sellerName}
           </span>
           <span style={{ fontSize: '13px', color: '#f57c00', marginTop: '2px', lineHeight: '1.2', fontWeight: 'bold' }}>
             ⭐ {seller.rating ? seller.rating.toFixed(1) : '0.0'} <span style={{ color: '#999', fontWeight: 'normal' }}>({seller.reviewsCount || 0} отзывов)</span>
@@ -176,7 +175,7 @@ function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isF
         <div className="bid-history-list">
           {localLot.bids?.map((bid, index) => {
             const isWinner = index === 0;
-            const bidUser = bid.user || {};
+            const bidUser = bid.user || (index === 0 ? winnerData : {}) || {};
 
             return (
               <div 
@@ -209,32 +208,15 @@ function CompletedLot({ setCurrentScreen, selectedLot, currentUser, isAdmin, isF
         </div>
       </div>
 
-      {localLot.sellerId === currentUser.id && (
-        <button className="btn-reject" style={{ width: '100%', padding: '14px', marginBottom: '20px' }} onClick={handleEarlyComplete}>
-          🛑 Завершить досрочно
-        </button>
-      )}
-
-      {/* ⚡ БЛОК ПОБЕДИТЕЛЯ И ОТЗЫВА */}
+      {/* ⚡ БЛОК ОТЗЫВА (без зелёной плашки победителя) */}
       <div style={{ marginTop: '16px' }}>
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '16px', marginBottom: '20px', textAlign: 'center' }}>
-          <h3 style={{ margin: '0 0 8px 0', color: '#15803d', fontSize: '16px', fontWeight: 'bold' }}>🏆 Аукцион успешно завершен!</h3>
-          {localLot?.bids && localLot.bids.length > 0 ? (
-            <p style={{ margin: 0, fontSize: '14px', color: '#166534', lineHeight: '1.4' }}>
-              Победитель торгов: <span style={{ fontWeight: 'bold', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => handleOpenPublicProfile(localLot.bids[0].userId, 'completedLot')}>{winnerName}</span> с финальной ставкой <b>{localLot.currentPrice?.toLocaleString('ru-RU')} ₽</b>.
-            </p>
-          ) : (
-            <p style={{ margin: 0, fontSize: '14px', color: '#166534' }}>Лот завершен без ставок.</p>
-          )}
-        </div>
-
         {canReview && !userReview && (
           <button 
             className="submit-btn" 
             onClick={() => setCurrentScreen('writeReview')} 
             style={{ width: '100%', height: '48px', background: '#ffcc00', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}
           >
-            ⭐ Оставить отзыв {isSeller ? 'покупателю' : 'продавцу'}
+            ⭐ Оставить отзыв
           </button>
         )}
 
