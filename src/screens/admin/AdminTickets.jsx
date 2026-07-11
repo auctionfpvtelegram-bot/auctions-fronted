@@ -50,6 +50,8 @@ export function AdminTickets({
   if (activeChat) {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', background: '#f9f9f9', zIndex: 9999 }}>
+        {/* ⚡ ТЕСТОВЫЙ ЗАГОЛОВОК */}
+        <h1 style={{ fontSize: '50px', color: 'red', textAlign: 'center', margin: '20px 0' }}>ТЕСТ РАБОТАЕТ!</h1>
         
         {/* Шапка чата */}
         <div style={{ padding: '14px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
