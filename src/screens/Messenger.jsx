@@ -281,13 +281,20 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                   if(setActiveChatPartnerId) setActiveChatPartnerId(null); 
                   setIsListVisible(false); 
                   
-                  // ⚡ Отправляем на бэкенд статус "Прочитано" для личного диалога
+                  // ⚡ Отправляем статус "Прочитано" на сервер
                   if (chat.id !== 'NEW_CHAT' && chat.id !== 'SUPPORT_CHAT') {
                     fetch(`${API_URL}/api/chats/${chat.id}/read`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ userId: currentUser.id })
                     }).catch(() => {});
+
+                    // ⚡ Обновляем локальный стейт, чтобы снять визуальный статус "Непрочитанное"
+                    setChats(prev => prev.map(c => 
+                      c.id === chat.id 
+                        ? { ...c, messages: c.messages?.map(m => ({ ...m, isRead: true })) || [] } 
+                        : c
+                    ));
                   }
                 }}
                 style={{ 

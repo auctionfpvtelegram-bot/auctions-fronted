@@ -14,18 +14,18 @@ export function AdminTickets({
     setChatMessages([]);
     setActiveChat(ticketId);
     
+    // ⚡ Мгновенно помечаем локально как прочитанное
+    setLocalRead(prev => new Set(prev).add(ticketId));
+    
     // Отправляем на бэкенд команду "Прочитано"
-    fetch(`${API_URL}/api/tickets/${ticketId}/read`, { method: 'PATCH' })
-      .then(() => {
-        // Локально обновляем статус, чтобы тикет мгновенно пропал из вкладки "Непрочитанные"
-        const ticket = adminTickets.find(t => t.id === ticketId);
-        if (ticket) ticket.isRead = true;
-      }).catch(() => {});
+    fetch(`${API_URL}/api/tickets/${ticketId}/read`, { method: 'PATCH' }).catch(() => {});
   };
 
   const [ticketSearch, setTicketSearch] = React.useState('');
-  // ⚡ Стейт для вкладок
-  const [ticketTab, setTicketTab] = React.useState('ALL'); // ALL, UNREAD, UNANSWERED
+  const [ticketTab, setTicketTab] = React.useState('ALL');
+  
+  // ⚡ НОВОЕ: Локальный стейт для мгновенного скрытия прочитанных
+  const [localRead, setLocalRead] = React.useState(new Set());
 
   // ⚡ Расширенная фильтрация тикетов с учётом вкладок (самая надежная версия)
   const filteredTickets = adminTickets.filter(t => {
@@ -41,7 +41,8 @@ export function AdminTickets({
     const isLastFromUser = String(lastMsgAuthor) === String(t.authorId);
 
     if (ticketTab === 'UNREAD') {
-      // Считаем непрочитанным, если есть флаг isRead === false в тикете ИЛИ в последнем сообщении
+      if (localRead.has(t.id)) return false; // ⚡ Мгновенно скрываем из непрочитанных
+      
       const isUnread = t.isRead === false || (lastMsg && lastMsg.isRead === false);
       return isLastFromUser && isUnread;
     }
@@ -56,7 +57,7 @@ export function AdminTickets({
 
   if (activeChat) {
     return (
-      <div style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '600px', bottom: 0, display: 'flex', flexDirection: 'column', background: '#f9f9f9', zIndex: 100 }}>
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', background: '#f9f9f9', zIndex: 100 }}>
         {/* Шапка чата */}
         <div style={{ padding: '14px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>←</button>
