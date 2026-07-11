@@ -38,14 +38,17 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
       const res = await fetch(`${API_URL}/api/users/${currentUser.id}/chats`);
       const data = await res.json();
       if (Array.isArray(data)) {
-        setChats(data); // ⚡ Сохраняем ВСЕ чаты из базы
+        // ⚡ Если текущий пользователь — админ, фильтруем список, чтобы исключить его переписки в качестве техподдержки
+        if (currentUser.id === adminId) {
+          // Оставляем только те чаты, которые НЕ являются служебными тикетами саппорта
+          setChats(data.filter(c => !c.ticketId)); 
+        } else {
+          setChats(data);
+        }
 
         if (targetIdAfterLoad) {
-          const foundChat = data.find(c => c.users.some(u => u.id === targetIdAfterLoad));
-          if (foundChat) {
-            setActiveChat(foundChat);
-            setIsListVisible(false);
-          }
+          const found = data.find(c => c.id === targetIdAfterLoad);
+          if (found) setActiveChat(found);
         }
       }
     } catch (err) {
@@ -204,20 +207,18 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   };
 
-  // ⚡ ФОРМИРУЕМ СПИСОК ЧАТОВ (обновлённая версия)
+  // ⚡ ФОРМИРУЕМ СПИСОК ЧАТОВ
   let displayedChats = [...chats];
   
-  // ⚡ Создаем чат с поддержкой ТОЛЬКО если текущий юзер НЕ является админом
+  // Показываем кнопку поддержки только обычным пользователям
   if (currentUser.id !== adminId) {
     const realSupportChat = displayedChats.find(c => c.users.some(u => u.id === adminId));
 
     if (realSupportChat) {
-      // Вытаскиваем реальный чат с админом и принудительно делаем его саппортом
       displayedChats = displayedChats.filter(c => c.id !== realSupportChat.id);
       realSupportChat.isSupport = true;
       displayedChats.unshift(realSupportChat);
     } else {
-      // Если чата с поддержкой еще не существует, рисуем красивую заглушку
       displayedChats.unshift({
         id: 'SUPPORT_CHAT',
         isSupport: true,
@@ -227,21 +228,14 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   }
 
-  // Вставка виртуального чата из профиля
-  if (activeChat && activeChat.id === 'NEW_CHAT') {
-    const partner = activeChat.users.find(u => u.id !== currentUser.id);
-    if (!displayedChats.some(c => c.users.some(u => u.id === partner?.id) && !c.isSupport)) {
-      displayedChats.splice(1, 0, activeChat);
-    }
-  }
-
-  // ⚡ Фильтрация отображаемых чатов по поисковому запросу
-  const filteredDisplayedChats = displayedChats.filter(chat => {
-    const partner = chat.users.find(u => u.id !== currentUser.id) || {};
-    const name = (partner.customName || partner.firstName || '').toLowerCase();
-    const id = partner.id || '';
+  // Фильтрация поиском
+  const filteredChats = displayedChats.filter(chat => {
+    if (chat.isSupport) return true;
+    const partner = chat.users?.find(u => u.id !== currentUser.id);
+    const name = (partner?.customName || partner?.firstName || '').toLowerCase();
+    const id = String(partner?.id || '');
     const query = searchQuery.toLowerCase();
-    return name.includes(query) || String(id).includes(query);
+    return name.includes(query) || id.includes(query);
   });
 
   const activePartner = activeChat ? activeChat.users.find(u => u.id !== currentUser.id) : null;
@@ -267,7 +261,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
         </div>
 
         <div className="ticket-list" style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
-          {filteredDisplayedChats.map(chat => {
+          {filteredChats.map(chat => {
             const partner = chat.users.find(u => u.id !== currentUser.id) || {};
             const isSelected = activeChat?.id === chat.id;
             const avatarUrlValid = getAvatarSrc(partner.avatarUrl);
@@ -281,16 +275,16 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                   if(setActiveChatPartnerId) setActiveChatPartnerId(null); 
                   setIsListVisible(false); 
                   
+                  // Помечаем прочитанным на сервере
                   if (chat.id !== 'NEW_CHAT' && chat.id !== 'SUPPORT_CHAT') {
-                    // 1. Отправляем запрос на бэкенд
                     fetch(`${API_URL}/api/chats/${chat.id}/read`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ userId: currentUser.id })
                     }).catch(() => {});
 
-                    // 2. ⚡ Мгновенно меняем статус внутри стейта React, чтобы снять выделение непрочитанного
-                    setChats(prevChats => prevChats.map(c => 
+                    // Локально снимаем флаг непрочитанного в стейте React
+                    setChats(prev => prev.map(c => 
                       c.id === chat.id 
                         ? { ...c, messages: c.messages?.map(m => ({ ...m, isRead: true })) || [] } 
                         : c
@@ -323,7 +317,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               </div>
             );
           })}
-          {filteredDisplayedChats.length === 0 && (
+          {filteredChats.length === 0 && (
             <div style={{ padding: '24px 16px', textAlign: 'center', color: '#999' }}>
               {searchQuery ? 'Ничего не найдено' : 'Нет чатов'}
             </div>
