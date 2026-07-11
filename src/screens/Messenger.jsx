@@ -11,6 +11,10 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   const [searchQuery, setSearchQuery] = useState('');
   const scrollRef = useRef(null);
   
+  // ⚡ Стейты для блокировок
+  const [blocks, setBlocks] = useState([]);
+  const [showMenu, setShowMenu] = useState(false);
+
   // Твой ID администратора
   const adminId = '7688251487';
 
@@ -30,6 +34,15 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
       return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     }
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // ⚡ Загрузка списка блокировок
+  const loadBlocks = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/users/${currentUser.id}/blocks`);
+      const data = await res.json();
+      setBlocks(Array.isArray(data) ? data : []);
+    } catch (err) { console.error(err); }
   };
 
   // 1. Загрузка всех чатов
@@ -58,6 +71,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
       handleTransitionFromProfile(activeChatPartnerId);
     } else {
       loadChats();
+      loadBlocks(); // ⚡ Загружаем блокировки при старте
     }
   }, [activeChatPartnerId]);
 
@@ -177,6 +191,21 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   };
 
+  // ⚡ Функция для блокировки/разблокировки
+  const handleToggleBlock = async (partnerId) => {
+    const didIBlock = blocks.some(b => String(b.blockerId) === String(currentUser.id) && String(b.blockedId) === String(partnerId));
+    const endpoint = didIBlock ? 'unblock' : 'block';
+    
+    try {
+      await fetch(`${API_URL}/api/users/${endpoint}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blockerId: currentUser.id, blockedId: partnerId })
+      });
+      await loadBlocks(); 
+      setShowMenu(false);
+    } catch (e) { console.error(e); }
+  };
+
   const handleAttachPhoto = async () => {
     if (!activeChat) return;
     const partner = activeChat.users.find(u => String(u.id) !== String(currentUser.id)) || {};
@@ -202,6 +231,23 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
       console.error("Ошибка при запросе фото:", err);
     }
   };
+
+  // ⚡ Функция рендера поля ввода (вынесена для условного отображения)
+  const renderInputArea = () => (
+    <div className="chat-input-area" style={{ borderTop: '1px solid #eee', display: 'flex', gap: '8px', padding: '12px 16px', alignItems: 'center', background: '#fff', flexShrink: 0, paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
+      <button onClick={handleAttachPhoto} style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#888' }}>
+        📎
+      </button>
+      <input 
+        type="text" placeholder="Сообщение..." value={inputText} 
+        onChange={e => setInputText(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
+        style={{ flex: 1, height: '42px', borderRadius: '20px', border: '1px solid #cbd5e1', padding: '0 16px', outline: 'none', fontSize: '15px' }}
+      />
+      <button onClick={handleSendMessage} style={{ background: '#ffcc00', border: 'none', borderRadius: '50%', width: '42px', height: '42px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 'bold', boxShadow: '0 2px 6px rgba(255,204,0,0.3)' }}>
+        ➤
+      </button>
+    </div>
+  );
 
   // ⚡ ФОРМИРУЕМ СПИСОК ЧАТОВ 
   let displayedChats = [...chats];
@@ -348,7 +394,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                 </svg>
               </button>
               
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <h3 
                   className="chat-title" 
                   onClick={() => {
@@ -370,6 +416,23 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                   </span>
                 )}
               </div>
+
+              {/* ⚡ ВЫПАДАЮЩЕЕ МЕНЮ С КНОПКОЙ "БЛОКИРОВАТЬ" */}
+              {!activeChat.isSupport && activePartner && (
+                <div style={{ position: 'relative', marginLeft: 'auto' }}>
+                  <button onClick={() => setShowMenu(!showMenu)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', padding: '0 8px', color: '#666' }}>⋮</button>
+                  {showMenu && (
+                    <div style={{ position: 'absolute', right: 0, top: '100%', background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: '12px', overflow: 'hidden', zIndex: 10, minWidth: '160px' }}>
+                      <button 
+                        onClick={() => handleToggleBlock(activePartner.id)}
+                        style={{ display: 'block', width: '100%', padding: '14px 16px', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', color: '#d32f2f', fontWeight: 'bold', fontSize: '14px' }}
+                      >
+                        {blocks.some(b => String(b.blockerId) === String(currentUser.id) && String(b.blockedId) === String(activePartner.id)) ? '🔓 Разблокировать' : '🚫 Заблокировать'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
             <div className="chat-messages-area" ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#f8fafc' }}>
@@ -417,19 +480,22 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               })}
             </div>
             
-            <div className="chat-input-area" style={{ borderTop: '1px solid #eee', display: 'flex', gap: '8px', padding: '12px 16px', alignItems: 'center', background: '#fff', flexShrink: 0, paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
-              <button onClick={handleAttachPhoto} style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#888' }}>
-                📎
-              </button>
-              <input 
-                type="text" placeholder="Сообщение..." value={inputText} 
-                onChange={e => setInputText(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
-                style={{ flex: 1, height: '42px', borderRadius: '20px', border: '1px solid #cbd5e1', padding: '0 16px', outline: 'none', fontSize: '15px' }}
-              />
-              <button onClick={handleSendMessage} style={{ background: '#ffcc00', border: 'none', borderRadius: '50%', width: '42px', height: '42px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 'bold', boxShadow: '0 2px 6px rgba(255,204,0,0.3)' }}>
-                ➤
-              </button>
-            </div>
+            {/* ⚡ ЛОГИКА СКРЫТИЯ ПОЛЯ ВВОДА ПРИ БЛОКИРОВКЕ */}
+            {(() => {
+              if (activeChat.isSupport) return renderInputArea(); // Для поддержки всегда доступно
+
+              const didIBlock = activePartner && blocks.some(b => String(b.blockerId) === String(currentUser.id) && String(b.blockedId) === String(activePartner.id));
+              const amIBlocked = activePartner && blocks.some(b => String(b.blockerId) === String(activePartner.id) && String(b.blockedId) === String(currentUser.id));
+
+              if (didIBlock) {
+                return <div style={{ padding: '16px', textAlign: 'center', background: '#ffebee', color: '#d32f2f', fontWeight: 'bold', borderTop: '1px solid #eee' }}>Вы заблокировали этого пользователя.</div>;
+              }
+              if (amIBlocked) {
+                return <div style={{ padding: '16px', textAlign: 'center', background: '#f5f5f5', color: '#666', fontWeight: 'bold', borderTop: '1px solid #eee' }}>Пользователь ограничил доступ к чату.</div>;
+              }
+
+              return renderInputArea();
+            })()}
 
           </div>
 
