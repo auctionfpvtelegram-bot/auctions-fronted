@@ -289,7 +289,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                       body: JSON.stringify({ userId: currentUser.id })
                     }).catch(() => {});
 
-                    // ⚡ Обновляем локальный стейт, чтобы снять визуальный статус "Непрочитанное"
+                    // ⚡ Мгновенно снимаем флаг "Непрочитанное" локально, чтобы оно ушло без обновления страницы
                     setChats(prev => prev.map(c => 
                       c.id === chat.id 
                         ? { ...c, messages: c.messages?.map(m => ({ ...m, isRead: true })) || [] } 

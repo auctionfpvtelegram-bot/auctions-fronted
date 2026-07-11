@@ -1,5 +1,5 @@
 import React from 'react';
-import { API_URL } from '../config'; // ⚡ Добавляем импорт API_URL
+import { API_URL } from '../config';
 
 export function AdminTickets({ 
   adminTickets, activeChat, setActiveChat, chatMessages, setChatMessages, 
@@ -8,58 +8,51 @@ export function AdminTickets({
 }) {
 
   const activeTicket = adminTickets.find(t => t.id === activeChat);
+  const [ticketSearch, setTicketSearch] = React.useState('');
+  const [ticketTab, setTicketTab] = React.useState('ALL');
   
-  // ⚡ Функция открытия тикета с пометкой "Прочитано"
+  // ⚡ Локальный стейт для мгновенного скрытия прочитанных
+  const [localRead, setLocalRead] = React.useState(new Set());
+
   const handleOpenTicket = (ticketId) => {
     setChatMessages([]);
     setActiveChat(ticketId);
     
-    // ⚡ Мгновенно помечаем локально как прочитанное
+    // Мгновенно помечаем локально как прочитанное
     setLocalRead(prev => new Set(prev).add(ticketId));
     
     // Отправляем на бэкенд команду "Прочитано"
     fetch(`${API_URL}/api/tickets/${ticketId}/read`, { method: 'PATCH' }).catch(() => {});
   };
 
-  const [ticketSearch, setTicketSearch] = React.useState('');
-  const [ticketTab, setTicketTab] = React.useState('ALL');
-  
-  // ⚡ НОВОЕ: Локальный стейт для мгновенного скрытия прочитанных
-  const [localRead, setLocalRead] = React.useState(new Set());
-
-  // ⚡ Расширенная фильтрация тикетов с учётом вкладок (самая надежная версия)
   const filteredTickets = adminTickets.filter(t => {
     const matchesSearch = String(t.id).includes(ticketSearch) || String(t.authorId).includes(ticketSearch);
     if (!matchesSearch) return false;
 
     const ticketMessagesList = t.messages || [];
     const lastMsg = ticketMessagesList[ticketMessagesList.length - 1];
-    
-    // Ищем ID автора последнего сообщения (может быть authorId или senderId)
-    // Если сообщений вообще нет, считаем, что последнее действие было от создателя тикета
     const lastMsgAuthor = lastMsg ? (lastMsg.authorId || lastMsg.senderId) : t.authorId;
     const isLastFromUser = String(lastMsgAuthor) === String(t.authorId);
 
     if (ticketTab === 'UNREAD') {
       if (localRead.has(t.id)) return false; // ⚡ Мгновенно скрываем из непрочитанных
-      
       const isUnread = t.isRead === false || (lastMsg && lastMsg.isRead === false);
       return isLastFromUser && isUnread;
     }
     
     if (ticketTab === 'UNANSWERED') {
-      // Неотвеченный - это любой тикет, где последнее слово осталось за юзером
       return isLastFromUser;
     }
-
     return true;
   });
 
   if (activeChat) {
     return (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', background: '#f9f9f9', zIndex: 100 }}>
-        {/* Шапка чата */}
-        <div style={{ padding: '14px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      // ⚡ position: fixed на весь экран, zIndex 9999 - перекроет всё и растянется до низа
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', background: '#f9f9f9', zIndex: 9999 }}>
+        
+        {/* Шапка чата (flexShrink: 0 чтобы не сжималась) */}
+        <div style={{ padding: '14px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
           <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>←</button>
           <div>
             <div style={{ fontWeight: 'bold', fontSize: '15px' }}>Тикет #{activeChat}</div>
@@ -67,9 +60,8 @@ export function AdminTickets({
           </div>
         </div>
 
-        {/* Сообщения */}
+        {/* Сообщения (flex: 1 чтобы занимали всё свободное место) */}
         <div className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
-          {/* Суть обращения */}
           {activeTicket && (
             <div style={{ alignSelf: 'flex-start', background: '#fff8e1', padding: '12px 14px', borderRadius: '16px', borderBottomLeftRadius: '4px', border: '1px solid #ffe0b2', maxWidth: '85%', marginBottom: '12px' }}>
               <span style={{ fontSize: '11px', color: '#f57c00', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>📌 ПЕРВОЕ СООБЩЕНИЕ (СУТЬ):</span>
@@ -77,21 +69,10 @@ export function AdminTickets({
             </div>
           )}
 
-          {/* Переписка с датами */}
           {Array.isArray(chatMessages) && chatMessages.map((msg, index) => {
             const isMe = currentUser && msg.authorId === currentUser.id;
-            
-            // ⚡ ЛОГИКА ОТОБРАЖЕНИЯ ДАТЫ
             const msgDate = new Date(msg.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-            let showDate = false;
-            
-            if (index === 0) {
-              showDate = true;
-            } else {
-              const prevMsgDate = new Date(chatMessages[index - 1].createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-              if (msgDate !== prevMsgDate) showDate = true;
-            }
-
+            let showDate = index === 0 || msgDate !== new Date(chatMessages[index - 1].createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
             const timeStr = new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
             return (
@@ -112,10 +93,10 @@ export function AdminTickets({
           })}
         </div>
 
-        {/* Панель ввода */}
-        <div style={{ padding: '12px', background: '#fff', borderTop: '1px solid #eee' }}>
+        {/* Панель ввода (flexShrink: 0 гарантирует, что она всегда в самом низу) */}
+        <div style={{ padding: '12px', background: '#fff', borderTop: '1px solid #eee', flexShrink: 0, paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
           {adminSelectedPhoto && (
-            <div style={{ fontSize: '12px', color: '#2e7d32', marginBottom: '6px' }}>📸 Фотография выбрана для отправки</div>
+            <div style={{ fontSize: '12px', color: '#2e7d32', marginBottom: '6px' }}>📸 Фотография выбрана</div>
           )}
           <div style={{ display: 'flex', gap: '8px' }}>
             <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: '#eee', borderRadius: '12px', cursor: 'pointer', fontSize: '20px' }}>
@@ -135,33 +116,14 @@ export function AdminTickets({
       <button onClick={() => setAdminScreen('dashboard')} style={{ background: 'none', border: 'none', color: '#1976d2', fontWeight: 'bold', marginBottom: '16px', cursor: 'pointer' }}>← В меню модератора</button>
       <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>🎧 Обращения в поддержку</h3>
       
-      {/* ⚡ Поиск тикетов */}
-      <input 
-        type="text" 
-        placeholder="🔍 Поиск по ID тикета или ID автора..." 
-        value={ticketSearch}
-        onChange={(e) => setTicketSearch(e.target.value)}
-        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #ddd', marginBottom: '16px', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }}
-      />
+      <input type="text" placeholder="🔍 Поиск..." value={ticketSearch} onChange={(e) => setTicketSearch(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #ddd', marginBottom: '16px', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }} />
 
-      {/* ⚡ Переключатель вкладок чатов */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
         {['ALL', 'UNREAD', 'UNANSWERED'].map((tab) => (
           <button
             key={tab}
             onClick={() => setTicketTab(tab)}
-            style={{
-              flex: 1,
-              padding: '8px 10px',
-              borderRadius: '8px',
-              border: '1px solid #ddd',
-              background: ticketTab === tab ? '#1976d2' : '#fff',
-              color: ticketTab === tab ? '#fff' : '#333',
-              fontWeight: 'bold',
-              fontSize: '12px',
-              cursor: 'pointer',
-              transition: '0.2s'
-            }}
+            style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #ddd', background: ticketTab === tab ? '#1976d2' : '#fff', color: ticketTab === tab ? '#fff' : '#333', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', transition: '0.2s' }}
           >
             {tab === 'ALL' ? 'Все' : tab === 'UNREAD' ? 'Непрочитанные' : 'Неотвеченные'}
           </button>
