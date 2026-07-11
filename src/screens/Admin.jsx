@@ -366,17 +366,24 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
                 const photo = document.getElementById('broadcastPhoto').value;
                 if (!text.trim()) return alert('Введите текст!');
                 
-                fetch(`${API_URL}/api/admin/broadcast`, {
+                fetch(`${API_URL}/api/lots/broadcast`, { // ⚡ Изменён путь на /api/lots/broadcast
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ text, photo })
                 })
-                .then(res => res.json())
+                .then(async res => {
+                  // ⚡ Читаем точную ошибку с сервера, если запрос упал
+                  if (!res.ok) {
+                    const errData = await res.json().catch(() => ({ error: 'Неизвестная ошибка сервера' }));
+                    throw new Error(errData.error || 'Ошибка бэкенда');
+                  }
+                  return res.json();
+                })
                 .then(() => {
                   alert('🚀 Рассылка успешно запущена!');
                   setAdminScreen('dashboard');
                 })
-                .catch(() => alert('❌ Ошибка отправки рассылки'));
+                .catch((err) => alert(`❌ Ошибка отправки: ${err.message}`)); // ⚡ Покажет точную причину
               }}
               style={{ width: '100%', padding: '14px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
             >
