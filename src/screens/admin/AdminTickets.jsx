@@ -1,5 +1,5 @@
 import React from 'react';
-import { API_URL } from '../config';
+import { API_URL } from '../../config'; // ✅ Исправлен путь — поднимаемся на два уровня вверх
 
 export function AdminTickets({ 
   adminTickets, activeChat, setActiveChat, chatMessages, setChatMessages, 
