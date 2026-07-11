@@ -351,43 +351,48 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
             <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>Текст сообщения</label>
             <textarea 
               id="broadcastText" placeholder="Введите текст рассылки..." rows={6}
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '16px', outline: 'none', fontFamily: 'inherit' }}
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '16px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
             />
             
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>Ссылка на фото (необязательно)</label>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>Текст на кнопке (необязательно)</label>
             <input 
-              type="text" id="broadcastPhoto" placeholder="https://example.com/image.jpg"
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '20px', boxSizing: 'border-box', outline: 'none' }}
+              type="text" id="broadcastButtonText" placeholder="Например: Купить сейчас"
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '16px', boxSizing: 'border-box', outline: 'none' }}
+            />
+
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>Ссылка для кнопки (необязательно)</label>
+            <input 
+              type="text" id="broadcastButtonUrl" placeholder="https://t.me/..."
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '24px', boxSizing: 'border-box', outline: 'none' }}
             />
             
             <button 
               onClick={() => {
                 const text = document.getElementById('broadcastText').value;
-                const photo = document.getElementById('broadcastPhoto').value;
+                const buttonText = document.getElementById('broadcastButtonText').value;
+                const buttonUrl = document.getElementById('broadcastButtonUrl').value;
+                
                 if (!text.trim()) return alert('Введите текст!');
                 
-                fetch(`${API_URL}/api/lots/broadcast`, { // ⚡ Изменён путь на /api/lots/broadcast
+                fetch(`${API_URL}/api/lots/broadcast`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ text, photo })
+                  body: JSON.stringify({ text, buttonText, buttonUrl, adminId: currentUser.id })
                 })
                 .then(async res => {
-                  // ⚡ Читаем точную ошибку с сервера, если запрос упал
-                  if (!res.ok) {
-                    const errData = await res.json().catch(() => ({ error: 'Неизвестная ошибка сервера' }));
-                    throw new Error(errData.error || 'Ошибка бэкенда');
-                  }
+                  if (!res.ok) throw new Error('Ошибка бэкенда');
                   return res.json();
                 })
                 .then(() => {
-                  alert('🚀 Рассылка успешно запущена!');
+                  alert('Перейдите в бота для отправки фото! 🤖');
                   setAdminScreen('dashboard');
+                  window.Telegram?.WebApp?.close(); // Закрываем WebApp для удобства
                 })
-                .catch((err) => alert(`❌ Ошибка отправки: ${err.message}`)); // ⚡ Покажет точную причину
+                .catch((err) => alert(`❌ Ошибка отправки: ${err.message}`));
               }}
-              style={{ width: '100%', padding: '14px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+              style={{ width: '100%', padding: '14px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px' }}
             >
-              Запустить рассылку по базе
+              Перейти в бота и отправить
             </button>
           </div>
         </div>
