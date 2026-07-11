@@ -11,17 +11,16 @@ export function AdminTickets({
   const [ticketSearch, setTicketSearch] = React.useState('');
   const [ticketTab, setTicketTab] = React.useState('ALL');
   
-  // ⚡ Локальный стейт для мгновенного скрытия прочитанных
-  const [localRead, setLocalRead] = React.useState(new Set());
+  // ⚡ Локальный массив для мгновенного скрытия прочитанных
+  const [localReadTickets, setLocalReadTickets] = React.useState([]);
 
   const handleOpenTicket = (ticketId) => {
     setChatMessages([]);
     setActiveChat(ticketId);
     
-    // Мгновенно помечаем локально как прочитанное
-    setLocalRead(prev => new Set(prev).add(ticketId));
+    // ⚡ Мгновенно добавляем в локальный список прочитанных
+    setLocalReadTickets(prev => [...prev, ticketId]);
     
-    // Отправляем на бэкенд команду "Прочитано"
     fetch(`${API_URL}/api/tickets/${ticketId}/read`, { method: 'PATCH' }).catch(() => {});
   };
 
@@ -35,7 +34,9 @@ export function AdminTickets({
     const isLastFromUser = String(lastMsgAuthor) === String(t.authorId);
 
     if (ticketTab === 'UNREAD') {
-      if (localRead.has(t.id)) return false; // ⚡ Мгновенно скрываем из непрочитанных
+      // ⚡ Если мы только что кликнули на этот тикет — сразу скрываем его
+      if (localReadTickets.includes(t.id)) return false;
+
       const isUnread = t.isRead === false || (lastMsg && lastMsg.isRead === false);
       return isLastFromUser && isUnread;
     }
@@ -48,10 +49,9 @@ export function AdminTickets({
 
   if (activeChat) {
     return (
-      // ⚡ position: fixed на весь экран, zIndex 9999 - перекроет всё и растянется до низа
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', background: '#f9f9f9', zIndex: 9999 }}>
         
-        {/* Шапка чата (flexShrink: 0 чтобы не сжималась) */}
+        {/* Шапка чата */}
         <div style={{ padding: '14px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
           <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>←</button>
           <div>
@@ -60,7 +60,7 @@ export function AdminTickets({
           </div>
         </div>
 
-        {/* Сообщения (flex: 1 чтобы занимали всё свободное место) */}
+        {/* Сообщения */}
         <div className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
           {activeTicket && (
             <div style={{ alignSelf: 'flex-start', background: '#fff8e1', padding: '12px 14px', borderRadius: '16px', borderBottomLeftRadius: '4px', border: '1px solid #ffe0b2', maxWidth: '85%', marginBottom: '12px' }}>
@@ -93,7 +93,7 @@ export function AdminTickets({
           })}
         </div>
 
-        {/* Панель ввода (flexShrink: 0 гарантирует, что она всегда в самом низу) */}
+        {/* Панель ввода */}
         <div style={{ padding: '12px', background: '#fff', borderTop: '1px solid #eee', flexShrink: 0, paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
           {adminSelectedPhoto && (
             <div style={{ fontSize: '12px', color: '#2e7d32', marginBottom: '6px' }}>📸 Фотография выбрана</div>

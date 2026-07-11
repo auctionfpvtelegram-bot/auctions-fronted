@@ -281,16 +281,16 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                   if(setActiveChatPartnerId) setActiveChatPartnerId(null); 
                   setIsListVisible(false); 
                   
-                  // ⚡ Отправляем статус "Прочитано" на сервер
                   if (chat.id !== 'NEW_CHAT' && chat.id !== 'SUPPORT_CHAT') {
+                    // 1. Отправляем запрос на бэкенд
                     fetch(`${API_URL}/api/chats/${chat.id}/read`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ userId: currentUser.id })
                     }).catch(() => {});
 
-                    // ⚡ Мгновенно снимаем флаг "Непрочитанное" локально, чтобы оно ушло без обновления страницы
-                    setChats(prev => prev.map(c => 
+                    // 2. ⚡ Мгновенно меняем статус внутри стейта React, чтобы снять выделение непрочитанного
+                    setChats(prevChats => prevChats.map(c => 
                       c.id === chat.id 
                         ? { ...c, messages: c.messages?.map(m => ({ ...m, isRead: true })) || [] } 
                         : c
