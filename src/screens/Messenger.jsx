@@ -19,7 +19,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     return url.startsWith('http') || url.startsWith('data:') ? url : `${API_URL}/api/image/${url}`;
   };
 
-  // ⚡ Умное форматирование даты (Сегодня в 15:30 / 12 мая в 10:00)
+  // ⚡ Умное форматирование даты
   const formatSmartDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -32,29 +32,20 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   };
 
-  // 1. Загрузка всех чатов без скрытия реальной поддержки
+  // 1. Загрузка всех чатов
   const loadChats = async (targetIdAfterLoad = null) => {
     try {
       const res = await fetch(`${API_URL}/api/users/${currentUser.id}/chats`);
       const data = await res.json();
       if (Array.isArray(data)) {
-        // ⚡ Если залогинен админ (проверяем строго через String)
-        if (String(currentUser.id) === String(adminId)) {
-          // Исключаем все чаты, которые содержат ticketId, тему или имя "Поддержка"
-          const filtered = data.filter(c => {
-            if (c.ticketId || c.topic) return false;
-            // Дополнительно проверяем, нет ли среди участников пользователя с именем "Поддержка"
-            const hasSupportName = c.users?.some(u => u.customName === 'Поддержка' || u.firstName === 'Поддержка');
-            return !hasSupportName;
-          });
-          setChats(filtered);
-        } else {
-          setChats(data);
-        }
+        setChats(data); 
 
         if (targetIdAfterLoad) {
-          const found = data.find(c => c.id === targetIdAfterLoad);
-          if (found) setActiveChat(found);
+          const foundChat = data.find(c => c.users.some(u => String(u.id) === String(targetIdAfterLoad)));
+          if (foundChat) {
+            setActiveChat(foundChat);
+            setIsListVisible(false);
+          }
         }
       }
     } catch (err) {
@@ -77,7 +68,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
       const data = await res.json();
       setChats(Array.isArray(data) ? data : []);
 
-      const existingChat = Array.isArray(data) ? data.find(c => c.users.some(u => u.id === partnerId)) : null;
+      const existingChat = Array.isArray(data) ? data.find(c => c.users.some(u => String(u.id) === String(partnerId))) : null;
       
       if (existingChat) {
         setActiveChat(existingChat);
@@ -122,7 +113,6 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
           .then(data => {
             if (Array.isArray(data)) {
               setMessages(prev => {
-                // Избегаем лишних рендеров и дерганья скролла, если новых сообщений нет
                 if (prev.length === data.length) return prev;
                 return data;
               });
@@ -136,8 +126,8 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
       if (activeChat.id === 'NEW_CHAT' || activeChat.id === 'SUPPORT_CHAT') {
         setMessages([]); 
       } else {
-        fetchMsgs(); // Грузим сразу
-        interval = setInterval(fetchMsgs, 3000); // ⚡ АВТООБНОВЛЕНИЕ
+        fetchMsgs(); 
+        interval = setInterval(fetchMsgs, 3000); 
       }
     }
     
@@ -157,7 +147,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
 
     const textToSend = inputText;
     setInputText('');
-    const partner = activeChat.users.find(u => u.id !== currentUser.id) || {};
+    const partner = activeChat.users.find(u => String(u.id) !== String(currentUser.id)) || {};
     const receiverId = activeChat.isSupport ? adminId : partner.id;
 
     try {
@@ -189,7 +179,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
 
   const handleAttachPhoto = async () => {
     if (!activeChat) return;
-    const partner = activeChat.users.find(u => u.id !== currentUser.id) || {};
+    const partner = activeChat.users.find(u => String(u.id) !== String(currentUser.id)) || {};
     const receiverId = activeChat.isSupport ? adminId : partner.id;
 
     try {
@@ -213,10 +203,10 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   };
 
-  // ⚡ ФОРМИРУЕМ СПИСОК ЧАТОВ
+  // ⚡ ФОРМИРУЕМ СПИСОК ЧАТОВ 
   let displayedChats = [...chats];
   
-  // Кнопку "Поддержка" создаем на лету ТОЛЬКО для обычных юзеров
+  // ⚡ Бронебойная проверка админа (строгое сравнение строк)
   if (String(currentUser.id) !== String(adminId)) {
     const realSupportChat = displayedChats.find(c => c.users.some(u => String(u.id) === String(adminId)));
 
@@ -234,23 +224,24 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   }
 
-  // Финальный фильтр для рендера (защита от дублирования в поиске)
-  const filteredChats = displayedChats.filter(chat => {
-    if (chat.isSupport) return true;
-    
-    // Повторный железный барьер для админа
-    if (String(currentUser.id) === String(adminId)) {
-      if (chat.ticketId || chat.topic) return false;
+  // Вставка виртуального чата из профиля
+  if (activeChat && activeChat.id === 'NEW_CHAT') {
+    const partner = activeChat.users.find(u => String(u.id) !== String(currentUser.id));
+    if (partner && !displayedChats.some(c => c.users.some(u => String(u.id) === String(partner.id)) && !c.isSupport)) {
+      displayedChats.splice(1, 0, activeChat);
     }
+  }
 
-    const partner = chat.users?.find(u => String(u.id) !== String(currentUser.id));
-    const name = (partner?.customName || partner?.firstName || '').toLowerCase();
-    const id = String(partner?.id || '');
+  // ⚡ Фильтрация отображаемых чатов по поисковому запросу
+  const filteredDisplayedChats = displayedChats.filter(chat => {
+    const partner = chat.users.find(u => String(u.id) !== String(currentUser.id)) || {};
+    const name = (partner.customName || partner.firstName || '').toLowerCase();
+    const id = partner.id || '';
     const query = searchQuery.toLowerCase();
-    return name.includes(query) || id.includes(query);
+    return name.includes(query) || String(id).includes(query);
   });
 
-  const activePartner = activeChat ? activeChat.users.find(u => u.id !== currentUser.id) : null;
+  const activePartner = activeChat ? activeChat.users.find(u => String(u.id) !== String(currentUser.id)) : null;
 
   return (
     <div style={{ position: 'fixed', top: '60px', left: 0, right: 0, bottom: 0, display: 'flex', background: '#f4f6f9', overflow: 'hidden', zIndex: 100 }}>
@@ -273,8 +264,8 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
         </div>
 
         <div className="ticket-list" style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
-          {filteredChats.map(chat => {
-            const partner = chat.users.find(u => u.id !== currentUser.id) || {};
+          {filteredDisplayedChats.map(chat => {
+            const partner = chat.users.find(u => String(u.id) !== String(currentUser.id)) || {};
             const isSelected = activeChat?.id === chat.id;
             const avatarUrlValid = getAvatarSrc(partner.avatarUrl);
             
@@ -287,7 +278,6 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                   if(setActiveChatPartnerId) setActiveChatPartnerId(null); 
                   setIsListVisible(false); 
                   
-                  // Помечаем прочитанным на сервере
                   if (chat.id !== 'NEW_CHAT' && chat.id !== 'SUPPORT_CHAT') {
                     fetch(`${API_URL}/api/chats/${chat.id}/read`, {
                       method: 'PATCH',
@@ -295,8 +285,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                       body: JSON.stringify({ userId: currentUser.id })
                     }).catch(() => {});
 
-                    // Локально снимаем флаг непрочитанного в стейте React
-                    setChats(prev => prev.map(c => 
+                    setChats(prevChats => prevChats.map(c => 
                       c.id === chat.id 
                         ? { ...c, messages: c.messages?.map(m => ({ ...m, isRead: true })) || [] } 
                         : c
@@ -329,7 +318,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               </div>
             );
           })}
-          {filteredChats.length === 0 && (
+          {filteredDisplayedChats.length === 0 && (
             <div style={{ padding: '24px 16px', textAlign: 'center', color: '#999' }}>
               {searchQuery ? 'Ничего не найдено' : 'Нет чатов'}
             </div>
@@ -391,7 +380,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
               )}
 
               {messages.map(msg => {
-                const isMine = msg.senderId === currentUser.id;
+                const isMine = String(msg.senderId) === String(currentUser.id);
                 return (
                   <div 
                     key={msg.id} 
