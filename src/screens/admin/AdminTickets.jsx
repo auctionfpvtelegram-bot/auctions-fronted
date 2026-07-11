@@ -11,19 +11,30 @@ export function AdminTickets({
   // ⚡ Стейт для вкладок
   const [ticketTab, setTicketTab] = React.useState('ALL'); // ALL, UNREAD, UNANSWERED
 
-  // ⚡ Расширенная фильтрация тикетов с учётом вкладок
+  // ⚡ Расширенная фильтрация тикетов с учётом вкладок (новая версия)
   const filteredTickets = adminTickets.filter(t => {
     const matchesSearch = String(t.id).includes(ticketSearch) || 
                           String(t.authorId).includes(ticketSearch);
     if (!matchesSearch) return false;
 
-    // Логика вкладок (используем флаги из БД, если они есть)
+    // ⚡ Достаем последнее сообщение из истории тикета
+    const ticketMessagesList = t.messages || [];
+    const lastMsg = ticketMessagesList[ticketMessagesList.length - 1];
+    
+    // ⚡ Проверяем, что последнее сообщение отправлено юзером (автором тикета)
+    const isLastFromUser = lastMsg ? String(lastMsg.authorId) === String(t.authorId) : false;
+
     if (ticketTab === 'UNREAD') {
-      return t.isRead === false;
+      // Непрочитанные: последнее от юзера и флаг прочтения равен false
+      const isUnread = lastMsg ? (lastMsg.isRead === false) : (t.isRead === false);
+      return isLastFromUser && isUnread;
     }
+    
     if (ticketTab === 'UNANSWERED') {
-      return t.isAnswered === false;
+      // Неотвеченные: последнее сообщение от юзера, независимо от прочтения
+      return isLastFromUser;
     }
+
     return true;
   });
 
