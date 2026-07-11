@@ -38,10 +38,16 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
       const res = await fetch(`${API_URL}/api/users/${currentUser.id}/chats`);
       const data = await res.json();
       if (Array.isArray(data)) {
-        // ⚡ Если залогинен админ, убираем из его личного мессенджера все чаты техподдержки
+        // ⚡ Если залогинен админ (проверяем строго через String)
         if (String(currentUser.id) === String(adminId)) {
-          // Отсекаем чаты, у которых в базе есть привязка к ticketId или теме
-          setChats(data.filter(c => !c.ticketId && !c.topic));
+          // Исключаем все чаты, которые содержат ticketId, тему или имя "Поддержка"
+          const filtered = data.filter(c => {
+            if (c.ticketId || c.topic) return false;
+            // Дополнительно проверяем, нет ли среди участников пользователя с именем "Поддержка"
+            const hasSupportName = c.users?.some(u => u.customName === 'Поддержка' || u.firstName === 'Поддержка');
+            return !hasSupportName;
+          });
+          setChats(filtered);
         } else {
           setChats(data);
         }
@@ -210,7 +216,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   // ⚡ ФОРМИРУЕМ СПИСОК ЧАТОВ
   let displayedChats = [...chats];
   
-  // Кнопку "Поддержка" показываем только обычным пользователям. Админу она не нужна.
+  // Кнопку "Поддержка" создаем на лету ТОЛЬКО для обычных юзеров
   if (String(currentUser.id) !== String(adminId)) {
     const realSupportChat = displayedChats.find(c => c.users.some(u => String(u.id) === String(adminId)));
 
@@ -228,13 +234,13 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   }
 
-  // Фильтрация поиском и дополнительная защита от служебных тикетов
+  // Финальный фильтр для рендера (защита от дублирования в поиске)
   const filteredChats = displayedChats.filter(chat => {
     if (chat.isSupport) return true;
     
-    // Если это админ, еще раз убеждаемся, что чат не содержит признаков тикета саппорта
-    if (String(currentUser.id) === String(adminId) && (chat.ticketId || chat.topic)) {
-      return false;
+    // Повторный железный барьер для админа
+    if (String(currentUser.id) === String(adminId)) {
+      if (chat.ticketId || chat.topic) return false;
     }
 
     const partner = chat.users?.find(u => String(u.id) !== String(currentUser.id));
