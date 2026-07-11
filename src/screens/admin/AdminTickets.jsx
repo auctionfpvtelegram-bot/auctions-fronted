@@ -11,27 +11,27 @@ export function AdminTickets({
   // ⚡ Стейт для вкладок
   const [ticketTab, setTicketTab] = React.useState('ALL'); // ALL, UNREAD, UNANSWERED
 
-  // ⚡ Расширенная фильтрация тикетов с учётом вкладок (новая версия)
+  // ⚡ Расширенная фильтрация тикетов с учётом вкладок (самая надежная версия)
   const filteredTickets = adminTickets.filter(t => {
-    const matchesSearch = String(t.id).includes(ticketSearch) || 
-                          String(t.authorId).includes(ticketSearch);
+    const matchesSearch = String(t.id).includes(ticketSearch) || String(t.authorId).includes(ticketSearch);
     if (!matchesSearch) return false;
 
-    // ⚡ Достаем последнее сообщение из истории тикета
     const ticketMessagesList = t.messages || [];
     const lastMsg = ticketMessagesList[ticketMessagesList.length - 1];
     
-    // ⚡ Проверяем, что последнее сообщение отправлено юзером (автором тикета)
-    const isLastFromUser = lastMsg ? String(lastMsg.authorId) === String(t.authorId) : false;
+    // Ищем ID автора последнего сообщения (может быть authorId или senderId)
+    // Если сообщений вообще нет, считаем, что последнее действие было от создателя тикета
+    const lastMsgAuthor = lastMsg ? (lastMsg.authorId || lastMsg.senderId) : t.authorId;
+    const isLastFromUser = String(lastMsgAuthor) === String(t.authorId);
 
     if (ticketTab === 'UNREAD') {
-      // Непрочитанные: последнее от юзера и флаг прочтения равен false
-      const isUnread = lastMsg ? (lastMsg.isRead === false) : (t.isRead === false);
+      // Считаем непрочитанным, если есть флаг isRead === false в тикете ИЛИ в последнем сообщении
+      const isUnread = t.isRead === false || (lastMsg && lastMsg.isRead === false);
       return isLastFromUser && isUnread;
     }
     
     if (ticketTab === 'UNANSWERED') {
-      // Неотвеченные: последнее сообщение от юзера, независимо от прочтения
+      // Неотвеченный - это любой тикет, где последнее слово осталось за юзером
       return isLastFromUser;
     }
 

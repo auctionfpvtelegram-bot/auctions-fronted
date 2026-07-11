@@ -204,23 +204,27 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
     }
   };
 
-  // ⚡ ФОРМИРУЕМ СПИСОК ЧАТОВ
+  // ⚡ ФОРМИРУЕМ СПИСОК ЧАТОВ (обновлённая версия)
   let displayedChats = [...chats];
-  const realSupportChat = displayedChats.find(c => c.users.some(u => u.id === adminId));
+  
+  // ⚡ Создаем чат с поддержкой ТОЛЬКО если текущий юзер НЕ является админом
+  if (currentUser.id !== adminId) {
+    const realSupportChat = displayedChats.find(c => c.users.some(u => u.id === adminId));
 
-  if (realSupportChat) {
-    // Вытаскиваем реальный чат с админом и принудительно делаем его саппортом
-    displayedChats = displayedChats.filter(c => c.id !== realSupportChat.id);
-    realSupportChat.isSupport = true;
-    displayedChats.unshift(realSupportChat);
-  } else {
-    // Если чата с поддержкой еще не существует, рисуем красивую заглушку
-    displayedChats.unshift({
-      id: 'SUPPORT_CHAT',
-      isSupport: true,
-      users: [currentUser, { id: adminId, customName: 'Поддержка', firstName: 'Поддержка' }],
-      messages: []
-    });
+    if (realSupportChat) {
+      // Вытаскиваем реальный чат с админом и принудительно делаем его саппортом
+      displayedChats = displayedChats.filter(c => c.id !== realSupportChat.id);
+      realSupportChat.isSupport = true;
+      displayedChats.unshift(realSupportChat);
+    } else {
+      // Если чата с поддержкой еще не существует, рисуем красивую заглушку
+      displayedChats.unshift({
+        id: 'SUPPORT_CHAT',
+        isSupport: true,
+        users: [currentUser, { id: adminId, customName: 'Поддержка', firstName: 'Поддержка' }],
+        messages: []
+      });
+    }
   }
 
   // Вставка виртуального чата из профиля
