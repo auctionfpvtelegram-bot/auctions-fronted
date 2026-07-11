@@ -338,6 +338,54 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
       {adminScreen === 'tickets' && <AdminTickets adminTickets={adminTickets} activeChat={activeChat} setActiveChat={setActiveChat} chatMessages={chatMessages} setChatMessages={setChatMessages} newMessageText={newMessageText} setNewMessageText={setNewMessageText} loadMessages={loadMessages} sendMessageWithPhoto={sendMessageWithPhoto} setAdminScreen={setAdminScreen} handlePhotoSelect={handlePhotoSelect} adminSelectedPhoto={adminSelectedPhoto} currentUser={currentUser} />}
       {adminScreen === 'users' && <AdminUsers setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} />}
       {adminScreen === 'profiles' && <AdminProfiles setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} />}
+
+      {/* ⚡ НОВЫЙ ЭКРАН: Массовая рассылка */}
+      {adminScreen === 'broadcast' && (
+        <div style={{ padding: '16px', paddingBottom: '40px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+            <button onClick={() => setAdminScreen('dashboard')} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', marginRight: '10px' }}>{'<'}</button>
+            <h2 style={{ margin: 0, fontSize: '20px' }}>📢 Создание рассылки</h2>
+          </div>
+          
+          <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #eee' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>Текст сообщения</label>
+            <textarea 
+              id="broadcastText" placeholder="Введите текст рассылки..." rows={6}
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '16px', outline: 'none', fontFamily: 'inherit' }}
+            />
+            
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>Ссылка на фото (необязательно)</label>
+            <input 
+              type="text" id="broadcastPhoto" placeholder="https://example.com/image.jpg"
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '20px', boxSizing: 'border-box', outline: 'none' }}
+            />
+            
+            <button 
+              onClick={() => {
+                const text = document.getElementById('broadcastText').value;
+                const photo = document.getElementById('broadcastPhoto').value;
+                if (!text.trim()) return alert('Введите текст!');
+                
+                fetch(`${API_URL}/api/admin/broadcast`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ text, photo })
+                })
+                .then(res => res.json())
+                .then(() => {
+                  alert('🚀 Рассылка успешно запущена!');
+                  setAdminScreen('dashboard');
+                })
+                .catch(() => alert('❌ Ошибка отправки рассылки'));
+              }}
+              style={{ width: '100%', padding: '14px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              Запустить рассылку по базе
+            </button>
+          </div>
+        </div>
+      )}
+
       {adminModal && renderAdminModal()} 
     </div>
   );

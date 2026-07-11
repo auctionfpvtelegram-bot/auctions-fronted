@@ -38,23 +38,38 @@ export function AdminDashboard({ adminStats, globalBanner, setGlobalBanner, setA
         </div>
       )}
 
-      {/* 🧭 Меню управления */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-        <button onClick={() => setAdminScreen('lots')} style={{ width: '100%', height: '48px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+      {/* 🧭 Меню управления — теперь в сетке 2 колонки */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+        <button onClick={() => setAdminScreen('lots')} style={{ padding: '14px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
           📦 Модерация лотов ({adminStats?.moderationLotsCount || 0})
         </button>
-        <button onClick={() => setAdminScreen('reviews')} style={{ width: '100%', height: '48px', background: '#0288d1', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+        <button onClick={() => setAdminScreen('reviews')} style={{ padding: '14px', background: '#0288d1', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
           ⭐ Модерация отзывов
         </button>
-        {/* ⚡ НОВАЯ КНОПКА: Модерация профилей пользователей */}
-        <button onClick={() => setAdminScreen('profiles')} style={{ width: '100%', height: '48px', background: '#7b1fa2', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+        <button onClick={() => setAdminScreen('profiles')} style={{ padding: '14px', background: '#7b1fa2', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
           👤 Профили на модерации ({adminStats?.moderationProfilesCount || 0})
         </button>
-        <button onClick={() => setAdminScreen('tickets')} style={{ width: '100%', height: '48px', background: '#ed6c02', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+        <button onClick={() => setAdminScreen('tickets')} style={{ padding: '14px', background: '#ed6c02', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
           🎧 Обращения (Поддержка)
         </button>
-        <button onClick={() => setAdminScreen('users')} style={{ width: '100%', height: '48px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+        <button onClick={() => setAdminScreen('users')} style={{ padding: '14px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
           🚫 Блокировка пользователей
+        </button>
+        {/* ⚡ НОВАЯ КНОПКА: Массовая рассылка — занимает всю ширину */}
+        <button 
+          onClick={() => setAdminScreen('broadcast')} 
+          style={{ 
+            padding: '14px', 
+            background: '#e53935', 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: '12px', 
+            fontWeight: 'bold', 
+            cursor: 'pointer', 
+            gridColumn: 'span 2' // растягиваем на две колонки
+          }}
+        >
+          📢 Массовая рассылка
         </button>
       </div>
 

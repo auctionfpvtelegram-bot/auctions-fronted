@@ -8,12 +8,24 @@ export function AdminTickets({
 
   const activeTicket = adminTickets.find(t => t.id === activeChat);
   const [ticketSearch, setTicketSearch] = React.useState('');
+  // ⚡ Стейт для вкладок
+  const [ticketTab, setTicketTab] = React.useState('ALL'); // ALL, UNREAD, UNANSWERED
 
-  // ⚡ Фильтрация тикетов по ID тикета или ID автора
-  const filteredTickets = adminTickets.filter(t => 
-    String(t.id).includes(ticketSearch) || 
-    String(t.authorId).includes(ticketSearch)
-  );
+  // ⚡ Расширенная фильтрация тикетов с учётом вкладок
+  const filteredTickets = adminTickets.filter(t => {
+    const matchesSearch = String(t.id).includes(ticketSearch) || 
+                          String(t.authorId).includes(ticketSearch);
+    if (!matchesSearch) return false;
+
+    // Логика вкладок (используем флаги из БД, если они есть)
+    if (ticketTab === 'UNREAD') {
+      return t.isRead === false;
+    }
+    if (ticketTab === 'UNANSWERED') {
+      return t.isAnswered === false;
+    }
+    return true;
+  });
 
   if (activeChat) {
     return (
@@ -103,6 +115,30 @@ export function AdminTickets({
         onChange={(e) => setTicketSearch(e.target.value)}
         style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #ddd', marginBottom: '16px', boxSizing: 'border-box', outline: 'none', fontSize: '14px' }}
       />
+
+      {/* ⚡ Переключатель вкладок чатов */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        {['ALL', 'UNREAD', 'UNANSWERED'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setTicketTab(tab)}
+            style={{
+              flex: 1,
+              padding: '8px 10px',
+              borderRadius: '8px',
+              border: '1px solid #ddd',
+              background: ticketTab === tab ? '#1976d2' : '#fff',
+              color: ticketTab === tab ? '#fff' : '#333',
+              fontWeight: 'bold',
+              fontSize: '12px',
+              cursor: 'pointer',
+              transition: '0.2s'
+            }}
+          >
+            {tab === 'ALL' ? 'Все' : tab === 'UNREAD' ? 'Непрочитанные' : 'Неотвеченные'}
+          </button>
+        ))}
+      </div>
 
       <div className="ticket-list">
         {filteredTickets.map((ticket) => (
