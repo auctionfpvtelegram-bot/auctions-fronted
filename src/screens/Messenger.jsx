@@ -38,9 +38,8 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
       const res = await fetch(`${API_URL}/api/users/${currentUser.id}/chats`);
       const data = await res.json();
       if (Array.isArray(data)) {
-        // ⚡ Если текущий пользователь — админ, фильтруем список, чтобы исключить его переписки в качестве техподдержки
-        if (currentUser.id === adminId) {
-          // Оставляем только те чаты, которые НЕ являются служебными тикетами саппорта
+        // ⚡ Сравнение через String(), так как Telegram ID — это Number, а adminId — String
+        if (String(currentUser.id) === String(adminId)) {
           setChats(data.filter(c => !c.ticketId)); 
         } else {
           setChats(data);
@@ -210,9 +209,9 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   // ⚡ ФОРМИРУЕМ СПИСОК ЧАТОВ
   let displayedChats = [...chats];
   
-  // Показываем кнопку поддержки только обычным пользователям
-  if (currentUser.id !== adminId) {
-    const realSupportChat = displayedChats.find(c => c.users.some(u => u.id === adminId));
+  // Проверяем админа с приведением к строке
+  if (String(currentUser.id) !== String(adminId)) {
+    const realSupportChat = displayedChats.find(c => c.users.some(u => String(u.id) === String(adminId)));
 
     if (realSupportChat) {
       displayedChats = displayedChats.filter(c => c.id !== realSupportChat.id);
@@ -231,7 +230,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
   // Фильтрация поиском
   const filteredChats = displayedChats.filter(chat => {
     if (chat.isSupport) return true;
-    const partner = chat.users?.find(u => u.id !== currentUser.id);
+    const partner = chat.users?.find(u => String(u.id) !== String(currentUser.id));
     const name = (partner?.customName || partner?.firstName || '').toLowerCase();
     const id = String(partner?.id || '');
     const query = searchQuery.toLowerCase();
