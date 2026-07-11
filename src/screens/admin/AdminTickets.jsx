@@ -1,4 +1,5 @@
 import React from 'react';
+import { API_URL } from '../config'; // ⚡ Добавляем импорт API_URL
 
 export function AdminTickets({ 
   adminTickets, activeChat, setActiveChat, chatMessages, setChatMessages, 
@@ -7,6 +8,21 @@ export function AdminTickets({
 }) {
 
   const activeTicket = adminTickets.find(t => t.id === activeChat);
+  
+  // ⚡ Функция открытия тикета с пометкой "Прочитано"
+  const handleOpenTicket = (ticketId) => {
+    setChatMessages([]);
+    setActiveChat(ticketId);
+    
+    // Отправляем на бэкенд команду "Прочитано"
+    fetch(`${API_URL}/api/tickets/${ticketId}/read`, { method: 'PATCH' })
+      .then(() => {
+        // Локально обновляем статус, чтобы тикет мгновенно пропал из вкладки "Непрочитанные"
+        const ticket = adminTickets.find(t => t.id === ticketId);
+        if (ticket) ticket.isRead = true;
+      }).catch(() => {});
+  };
+
   const [ticketSearch, setTicketSearch] = React.useState('');
   // ⚡ Стейт для вкладок
   const [ticketTab, setTicketTab] = React.useState('ALL'); // ALL, UNREAD, UNANSWERED
@@ -40,7 +56,7 @@ export function AdminTickets({
 
   if (activeChat) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f9f9f9' }}>
+      <div style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '600px', bottom: 0, display: 'flex', flexDirection: 'column', background: '#f9f9f9', zIndex: 100 }}>
         {/* Шапка чата */}
         <div style={{ padding: '14px', background: '#fff', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>←</button>
@@ -153,7 +169,7 @@ export function AdminTickets({
 
       <div className="ticket-list">
         {filteredTickets.map((ticket) => (
-          <div key={ticket.id} className="ticket-card" onClick={() => { setChatMessages([]); setActiveChat(ticket.id); }} style={{ background: '#fff', border: '1px solid #eee', marginBottom: '12px', borderRadius: '12px', padding: '16px', cursor: 'pointer' }}>
+          <div key={ticket.id} className="ticket-card" onClick={() => handleOpenTicket(ticket.id)} style={{ background: '#fff', border: '1px solid #eee', marginBottom: '12px', borderRadius: '12px', padding: '16px', cursor: 'pointer' }}>
             <h4 style={{ margin: '0 0 6px 0', fontSize: '15px' }}>{ticket.topic}</h4>
             <p style={{ margin: 0, fontSize: '12px', color: '#888' }}>От пользователя: {ticket.authorId}</p>
           </div>

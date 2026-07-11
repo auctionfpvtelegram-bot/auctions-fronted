@@ -280,6 +280,15 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                   setActiveChat(chat); 
                   if(setActiveChatPartnerId) setActiveChatPartnerId(null); 
                   setIsListVisible(false); 
+                  
+                  // ⚡ Отправляем на бэкенд статус "Прочитано" для личного диалога
+                  if (chat.id !== 'NEW_CHAT' && chat.id !== 'SUPPORT_CHAT') {
+                    fetch(`${API_URL}/api/chats/${chat.id}/read`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: currentUser.id })
+                    }).catch(() => {});
+                  }
                 }}
                 style={{ 
                   margin: 0, borderRadius: 0, borderBottom: '1px solid #eee', 
