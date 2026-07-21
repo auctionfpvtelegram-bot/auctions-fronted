@@ -15,6 +15,7 @@ import WriteReview from './screens/WriteReview';
 import TicketHistory from './screens/TicketHistory';
 import NotificationsPanel from './screens/NotificationsPanel';
 import Messenger from './screens/Messenger';
+import Faq from './screens/Faq'; // ⚡ Импорт экрана FAQ
 
 // ⚡ Получаем данные Telegram мгновенно, до рендера, чтобы избежать лагов интерфейса
 const getInitialTelegramUser = () => {
@@ -166,12 +167,13 @@ function App() {
       case 'writeReview': return 'Оставить отзыв';
       case 'ticketHistory': return 'Поддержка';
       case 'messenger': return 'Сообщения';
+      case 'faq': return 'Частые вопросы'; // ⚡ Заголовок для FAQ
       default: return 'Аукцион';
     }
   };
 
   const handleBackClick = () => {
-    if (['activeLot', 'completedLot', 'rejectedLot', 'publicProfile', 'ticketHistory', 'settings', 'adminDashboard', 'feedback', 'messenger'].includes(currentScreen)) {
+    if (['activeLot', 'completedLot', 'rejectedLot', 'publicProfile', 'ticketHistory', 'settings', 'adminDashboard', 'feedback', 'messenger', 'faq'].includes(currentScreen)) {
       setCurrentScreen('profile');
     } else if (currentScreen === 'writeReview') {
       setCurrentScreen('completedLot');
@@ -283,7 +285,6 @@ function App() {
       {currentScreen === 'feedback' && <Feedback setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
       {currentScreen === 'publicProfile' && <PublicProfile setCurrentScreen={setCurrentScreen} currentUser={currentUser} publicProfileData={publicProfileData} referrer={publicProfileReferrer} setActiveChatPartnerId={setActiveChatPartnerId} />}
       {currentScreen === 'rejectedLot' && <RejectedLot setCurrentScreen={setCurrentScreen} currentUser={currentUser} lot={selectedLot} setAlertData={setAlertData} />}
-      {/* Передаем исправленный метод фонового обновления данных */}
       {currentScreen === 'settings' && <Settings setCurrentScreen={setCurrentScreen} currentUser={currentUser} setAlertData={setAlertData} refreshCurrentUser={refreshCurrentUser} />}
       {currentScreen === 'writeReview' && <WriteReview setCurrentScreen={setCurrentScreen} currentUser={currentUser} selectedLot={selectedLot} setAlertData={setAlertData} />}
       {currentScreen === 'ticketHistory' && <TicketHistory setCurrentScreen={setCurrentScreen} currentUser={currentUser} />}
@@ -296,6 +297,11 @@ function App() {
           activeChatPartnerId={activeChatPartnerId}
           setActiveChatPartnerId={setActiveChatPartnerId}
         />
+      )}
+
+      {/* ⚡ ЭКРАН FAQ */}
+      {currentScreen === 'faq' && (
+        <Faq setCurrentScreen={setCurrentScreen} currentUser={currentUser} />
       )}
     </div>
   );

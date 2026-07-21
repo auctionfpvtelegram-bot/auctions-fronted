@@ -55,7 +55,13 @@ export function AdminDashboard({ adminStats, globalBanner, setGlobalBanner, setA
         <button onClick={() => setAdminScreen('users')} style={{ padding: '14px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
           🚫 Блокировка пользователей
         </button>
-        {/* ⚡ НОВАЯ КНОПКА: Массовая рассылка — занимает всю ширину */}
+        
+        {/* ⚡ НОВАЯ КНОПКА: База знаний (встает ровно во 2-ю колонку 3-го ряда) */}
+        <button onClick={() => setAdminScreen('faq')} style={{ padding: '14px', background: '#0277bd', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+          💡 База Знаний (F.A.Q.)
+        </button>
+
+        {/* 📢 КНОПКА МАССОВОЙ РАССЫЛКИ — растянута на 2 колонки в самом низу сетки */}
         <button 
           onClick={() => setAdminScreen('broadcast')} 
           style={{ 
@@ -66,7 +72,7 @@ export function AdminDashboard({ adminStats, globalBanner, setGlobalBanner, setA
             borderRadius: '12px', 
             fontWeight: 'bold', 
             cursor: 'pointer', 
-            gridColumn: 'span 2' // растягиваем на две колонки
+            gridColumn: 'span 2'
           }}
         >
           📢 Массовая рассылка
