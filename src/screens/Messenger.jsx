@@ -321,6 +321,7 @@ function Messenger({ currentUser, setCurrentScreen, activeChatPartnerId, setActi
                 className={`ticket-card ${isSelected ? 'active' : ''}`}
                 onClick={() => { 
                   setActiveChat(chat); 
+                  setShowMenu(false); // ⚡ Скрываем меню при переключении чата
                   if(setActiveChatPartnerId) setActiveChatPartnerId(null); 
                   setIsListVisible(false); 
                   
