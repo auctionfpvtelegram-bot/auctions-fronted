@@ -245,15 +245,6 @@ function Admin({ setCurrentScreen, currentUser, setAlertData, setConfirmData }) 
       
       {adminScreen === 'dashboard' && (
         <>
-          <div style={{ padding: '16px 16px 0 16px' }}>
-             <button 
-                onClick={() => setAdminScreen('faq')} 
-                style={{ width: '100%', padding: '14px', background: '#1976d2', color: '#fff', borderRadius: '12px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', boxShadow: '0 2px 8px rgba(25, 118, 210, 0.2)' }}
-             >
-               <span style={{ fontSize: '18px' }}>💡</span> Управление Базой Знаний
-             </button>
-          </div>
-          
           <AdminDashboard 
             adminStats={adminStats} globalBanner={globalBanner} setGlobalBanner={setGlobalBanner}
             setAdminScreen={setAdminScreen} API_URL={API_URL} setAlertData={setAlertData} 
