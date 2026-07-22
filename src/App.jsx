@@ -15,7 +15,7 @@ import WriteReview from './screens/WriteReview';
 import TicketHistory from './screens/TicketHistory';
 import NotificationsPanel from './screens/NotificationsPanel';
 import Messenger from './screens/Messenger';
-import Faq from './screens/Faq'; // ⚡ Импорт экрана FAQ
+import FAQ from './screens/FAQ'; // ⚡ Импорт экрана FAQ (заглавные буквы)
 
 // ⚡ Получаем данные Telegram мгновенно, до рендера, чтобы избежать лагов интерфейса
 const getInitialTelegramUser = () => {
@@ -301,7 +301,7 @@ function App() {
 
       {/* ⚡ ЭКРАН FAQ */}
       {currentScreen === 'faq' && (
-        <Faq setCurrentScreen={setCurrentScreen} currentUser={currentUser} />
+        <FAQ setCurrentScreen={setCurrentScreen} currentUser={currentUser} />
       )}
     </div>
   );
